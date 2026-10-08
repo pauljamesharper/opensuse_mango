@@ -1,0 +1,17 @@
+#!/bin/bash
+# power — open the bar's power menu (quickshell/PowerPopup.qml). The rofi
+# list below only runs when the bar isn't there to answer, so Super+x
+# still gets you out if quickshell has crashed.
+SHARE="$(dirname "$(dirname "$(readlink -f "$0")")")"
+STATE="${XDG_STATE_HOME:-$HOME/.local/state}/mango"
+qs -p "$SHARE/quickshell" ipc call power toggle >/dev/null 2>&1 && exit 0
+
+ROFI_THEME="$SHARE/rofi/power.rasi"
+chosen=$(printf '%s\n' "[Cancel]" "Logout" "Shutdown" "Reboot" | \
+    rofi -dmenu -i -p "Power Menu" -line-padding 4 -hide-scrollbar -theme "$ROFI_THEME" -theme-str "@import \"$STATE/colors.rasi\"")
+case "$chosen" in
+    "Logout") "$SHARE/scripts/mango-ipc" dispatch quit ;;
+    "Shutdown") systemctl poweroff ;;
+    "Reboot") systemctl reboot ;;
+    *) exit 0 ;;
+esac

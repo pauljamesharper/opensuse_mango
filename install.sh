@@ -31,7 +31,7 @@ done
 
 # Paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_DIR="$HOME/.config/mango"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/mango"
 KEPT_NEW=()
 TEMP_DIR="/tmp/mango_$$"
 LOG_FILE="$HOME/mango-install.log"
@@ -207,96 +207,99 @@ else
     msg "Skipping package installation (--only-config mode)"
 fi
 
-# Handle existing config
-BACKUP_DIR=""
-if [ -d "$CONFIG_DIR" ]; then
-    clear 2>/dev/null || true
-    read -p "Found existing Mango config. Backup? (y/n) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        BACKUP_DIR="$CONFIG_DIR.bak.$(date +%Y%m%d-%H%M%S)"
-        # a second run in the same second must not mv into the first's folder
-        while [ -e "$BACKUP_DIR" ]; do BACKUP_DIR="$BACKUP_DIR-1"; done
-        mv "$CONFIG_DIR" "$BACKUP_DIR"
-        msg "Backed up existing config"
-    else
-        clear 2>/dev/null || true
-        read -p "Overwrite without backup? (y/n) " -n 1 -r
-        echo
-        [[ $REPLY =~ ^[Yy]$ ]] || die "Installation cancelled"
-        rm -rf "$CONFIG_DIR"
-    fi
-fi
-
-# Copy configs
-msg "Setting up configuration..."
-mkdir -p "$CONFIG_DIR"
-cp -r "$SCRIPT_DIR"/config/* "$CONFIG_DIR"/ || die "Failed to copy configs"
-chmod +x "$CONFIG_DIR"/scripts/*
-
-# Two files are the user's once installed: keybinds.conf (every binding)
-# and local.conf (their overrides). The rule is dpkg's for conffiles: a
-# file the user never edited is updated silently; one they edited is kept,
-# and when our default changed since, ours is left beside it as FILE.new
-# (said once). "Never edited" is known from the copy of what was shipped
-# last time, kept in the state folder. theme.conf (wallpaper + colours,
-# written by the wallpaper picker) comes back as is. Settings the bar
-# keeps (bar height, weather location, kept monitor layouts...) live in
-# the state folder and survive on their own.
+# Three folders, by owner (see README, "Making it yours"):
+#   $SHARE_DIR   the setup's files: bar, scripts, defaults, templates —
+#                replaced wholesale on every update, nothing of yours lives here
+#   $CONFIG_DIR  the user's: config.conf, keybinds.conf, local.conf, env,
+#                wallpaper/ — never replaced; the four files follow dpkg's
+#                conffile rule (updated silently if never edited, otherwise
+#                kept with ours beside as FILE.new, said once)
+#   $STATE_DIR   generated files (palette, theme.conf, themed dunst, kitty
+#                colours) and the settings the bar keeps — survive untouched
+SHARE_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/mango"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/mango"
-mkdir -p "$STATE_DIR/shipped"
-if [ -n "$BACKUP_DIR" ]; then
-    if [ -f "$BACKUP_DIR/theme.conf" ]; then
-        cp "$BACKUP_DIR/theme.conf" "$CONFIG_DIR/theme.conf"
-        # before 2026-10 the wallpaper line lived in config.conf; carry it
-        # into theme.conf, where the wallpaper picker writes it now
-        if ! grep -q '^exec-once=awww img' "$CONFIG_DIR/theme.conf"; then
-            grep '^exec-once=awww img' "$BACKUP_DIR/config.conf" >> "$CONFIG_DIR/theme.conf" 2>/dev/null || true
-        fi
-    fi
-    # settings the bar kept in the config folder before 2026-10 move to
-    # the state folder (the bar does the same on start; here they would
-    # otherwise sit forgotten in the backup)
-    for f in bar-height bar-scale popup-scale tag-icons mango-gaps mango-effects \
+mkdir -p "$SHARE_DIR" "$CONFIG_DIR" "$STATE_DIR/shipped"
+
+# An install from before 2026-10 kept everything in $CONFIG_DIR. Move it
+# aside whole and carry over what is the user's; the share folder takes
+# over the rest.
+BACKUP_DIR=""
+if [ -d "$CONFIG_DIR/quickshell" ]; then
+    BACKUP_DIR="$CONFIG_DIR.bak.$(date +%Y%m%d-%H%M%S)"
+    while [ -e "$BACKUP_DIR" ]; do BACKUP_DIR="$BACKUP_DIR-1"; done
+    msg "Config from before the layout change found - moving it to $BACKUP_DIR and carrying yours over"
+    mv "$CONFIG_DIR" "$BACKUP_DIR"
+    mkdir -p "$CONFIG_DIR"
+    # the user's files, as they were
+    for f in keybinds.conf local.conf env; do
+        [ -f "$BACKUP_DIR/$f" ] && cp "$BACKUP_DIR/$f" "$CONFIG_DIR/$f"
+    done
+    [ -d "$BACKUP_DIR/wallpaper" ] && mv "$BACKUP_DIR/wallpaper" "$CONFIG_DIR/wallpaper"
+    # generated files and settings go to the state folder
+    for f in theme.conf polybar/colors.ini rofi/colors.rasi dunst/dunstrc \
+             bar-height bar-scale popup-scale tag-icons mango-gaps mango-effects \
              lock-idle lock-style pomodoro weather-location weather-units \
              launcher-history displays.conf; do
-        [ -f "$BACKUP_DIR/$f" ] && [ ! -e "$STATE_DIR/$f" ] && mv "$BACKUP_DIR/$f" "$STATE_DIR/$f"
+        [ -f "$BACKUP_DIR/$f" ] && [ ! -e "$STATE_DIR/$(basename "$f")" ] && cp "$BACKUP_DIR/$f" "$STATE_DIR/$(basename "$f")"
     done
-    for f in keybinds.conf local.conf; do
-        theirs="$BACKUP_DIR/$f"; ours="$CONFIG_DIR/$f"; prev="$STATE_DIR/shipped/$f"
-        [ -f "$theirs" ] || continue                      # first install of this file: ours
-        cmp -s "$theirs" "$ours" && continue              # identical: nothing to do
-        if [ -f "$prev" ] && cmp -s "$theirs" "$prev"; then
-            continue                                      # never edited: ours, silently
-        fi
-        if [ -f "$prev" ] && cmp -s "$ours" "$prev"; then
-            cp "$theirs" "$ours"                          # edited, ours unchanged: theirs, silently
-            [ -f "$BACKUP_DIR/$f.new" ] && mv "$BACKUP_DIR/$f.new" "$CONFIG_DIR/$f.new"
-            continue
-        fi
-        # edited and ours changed: theirs stays; ours beside it as .new,
-        # unless that .new is already there from last time
-        if [ -f "$BACKUP_DIR/$f.new" ] && cmp -s "$BACKUP_DIR/$f.new" "$ours"; then
-            mv "$BACKUP_DIR/$f.new" "$CONFIG_DIR/$f.new"
-        else
-            cp "$ours" "$CONFIG_DIR/$f.new"
-            KEPT_NEW+=("$f")
-        fi
-        cp "$theirs" "$ours"
-    done
-    if [ ${#KEPT_NEW[@]} -gt 0 ]; then
-        msg "Kept your ${KEPT_NEW[*]}; the new defaults are beside as .new"
+    [ -f "$BACKUP_DIR/kitty/current-theme.conf" ] && [ ! -e "$STATE_DIR/kitty-theme.conf" ] && cp "$BACKUP_DIR/kitty/current-theme.conf" "$STATE_DIR/kitty-theme.conf"
+    # the wallpaper line lived in config.conf before; theme.conf carries it now
+    if [ -f "$STATE_DIR/theme.conf" ] && ! grep -q '^exec-once=awww img' "$STATE_DIR/theme.conf"; then
+        grep '^exec-once=awww img' "$BACKUP_DIR/config.conf" >> "$STATE_DIR/theme.conf" 2>/dev/null || true
     fi
+    # keybinds and env from that layout name the old script paths
+    for f in keybinds.conf env; do
+        [ -f "$CONFIG_DIR/$f" ] && sed -i 's|\.config/mango/scripts/|.local/share/mango/scripts/|g; s|\.config/mango/quickshell|.local/share/mango/quickshell|g; s|^KITTY_CONFIG_DIRECTORY=.*|KITTY_CONFIG_DIRECTORY=${XDG_DATA_HOME:-$HOME/.local/share}/mango/kitty|' "$CONFIG_DIR/$f"
+    done
+fi
+
+# The setup's own files: replaced wholesale
+msg "Setting up configuration..."
+rm -rf "$SHARE_DIR"
+mkdir -p "$SHARE_DIR"
+cp -r "$SCRIPT_DIR"/share/* "$SHARE_DIR"/ || die "Failed to copy the setup's files"
+chmod +x "$SHARE_DIR"/scripts/*
+
+# The user's four files, dpkg's way. "Never edited" is known from the
+# copy of what was shipped last time, kept in the state folder.
+for f in config.conf keybinds.conf local.conf env; do
+    ours="$SCRIPT_DIR/config/$f"; theirs="$CONFIG_DIR/$f"; prev="$STATE_DIR/shipped/$f"
+    if [ ! -f "$theirs" ]; then
+        cp "$ours" "$theirs"                              # first time: ours
+    elif cmp -s "$theirs" "$ours"; then
+        :                                                 # identical already
+    elif [ -f "$prev" ] && cmp -s "$theirs" "$prev"; then
+        cp "$ours" "$theirs"                              # never edited: ours, silently
+    elif [ -f "$prev" ] && cmp -s "$ours" "$prev"; then
+        :                                                 # edited, ours unchanged: theirs
+    elif [ -f "$theirs.new" ] && cmp -s "$theirs.new" "$ours"; then
+        :                                                 # same .new as last time, said already
+    else
+        cp "$ours" "$theirs.new"                          # edited and ours changed: theirs stays
+        KEPT_NEW+=("$f")
+    fi
+done
+if [ ${#KEPT_NEW[@]} -gt 0 ]; then
+    msg "Kept your ${KEPT_NEW[*]}; the new defaults are beside as .new"
 fi
 # remember what was shipped this time (see above)
-cp "$SCRIPT_DIR/config/keybinds.conf" "$SCRIPT_DIR/config/local.conf" "$STATE_DIR/shipped/"
+cp "$SCRIPT_DIR"/config/{config.conf,keybinds.conf,local.conf,env} "$STATE_DIR/shipped/"
+# MANGO_STATE_DIR in env is new in 2026-10; an env kept from before needs it
+grep -q '^MANGO_STATE_DIR=' "$CONFIG_DIR/env" || printf '\nMANGO_STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/mango\n' >> "$CONFIG_DIR/env"
+
+# Generated files: the defaults for the default wallpaper, only where
+# nothing exists yet (a wallpaper pick regenerates them all)
+for f in "$SCRIPT_DIR"/state/*; do
+    [ -e "$STATE_DIR/$(basename "$f")" ] || cp "$f" "$STATE_DIR/"
+done
+[ -e "$STATE_DIR/dunstrc" ] || cp "$SHARE_DIR/dunst/dunstrc" "$STATE_DIR/dunstrc"
 
 # Session environment ($CONFIG_DIR/env, just copied) is sourced by
 # mango-session, the login wrapper the mangowc package's session entry runs
 # from 0.14.4-4 on — that's how KITTY_CONFIG_DIRECTORY reaches the terminals
 # mango spawns, under any display manager. Older packages start the bare
 # binary and ignore the file. The session kitty config itself
-# ($CONFIG_DIR/kitty, same layout as the dwm/bspwm/openbox setups) came in
+# ($SHARE_DIR/kitty, same layout as the dwm/bspwm/openbox setups) came in
 # with the config copy above.
 MANGO_VER=$(dpkg-query -W -f='${Version}' mangowc 2>/dev/null || true)
 if [ -z "$MANGO_VER" ]; then
@@ -313,15 +316,15 @@ if systemd-detect-virt -q 2>/dev/null; then
     sed -i 's|^#WLR_NO_HARDWARE_CURSORS=1$|WLR_NO_HARDWARE_CURSORS=1|' "$CONFIG_DIR/env"
 fi
 
-# dunst is started with -config from config.conf; the symlink covers the
+# dunst is started with -config from defaults.conf; the symlink covers the
 # D-Bus-activated case (a notification arriving before autostart ran).
 mkdir -p ~/.config/dunst
-ln -sfn "$CONFIG_DIR/dunst/dunstrc" ~/.config/dunst/dunstrc
+ln -sfn "$STATE_DIR/dunstrc" ~/.config/dunst/dunstrc
 # swappy (screenshot annotate) saves where the other screenshots go; a
 # swappy config of the user's own is left alone
 if [ ! -e ~/.config/swappy/config ] || [ -L ~/.config/swappy/config ]; then
     mkdir -p ~/.config/swappy
-    ln -sfn "$CONFIG_DIR/swappy/config" ~/.config/swappy/config
+    ln -sfn "$SHARE_DIR/swappy/config" ~/.config/swappy/config
 fi
 
 # Setup directories
@@ -349,7 +352,7 @@ if [ "$ONLY_CONFIG" = false ]; then
     mkdir -p "$TEMP_DIR" && cd "$TEMP_DIR"
 
     # --no-config: the session-local kitty config is vendored in
-    # $CONFIG_DIR/kitty (like the dwm/bspwm/openbox setups); ~/.config/kitty
+    # $SHARE_DIR/kitty (like the dwm/bspwm/openbox setups); ~/.config/kitty
     # is left alone
     msg "Installing kitty..."
     get_script "kitty/install_kitty.sh" --no-config \

@@ -77,51 +77,46 @@ git pull
 ./install.sh
 ```
 
-The installer asks before touching an existing `~/.config/mango`: say
-**yes** to the backup and it moves the old folder aside as
-`~/.config/mango.bak.<timestamp>`, copies the new one in and installs any
-packages that are new since last time. What's yours comes through:
+Nothing of yours is touched. The setup's own files — the bar, the
+scripts, the defaults, the templates — live in `~/.local/share/mango` and
+are replaced wholesale. Your folder, `~/.config/mango`, holds four files
+and your wallpapers, and the installer treats the files the way `dpkg`
+treats a conffile: one you never edited is updated silently; one you
+edited is kept, and if the shipped version changed since, the new one is
+left beside yours as `keybinds.conf.new` to merge by hand — the installer
+says so, once. Everything generated — the palette, the themed dunst
+config, `theme.conf` with your wallpaper — and every setting the bar
+keeps live in `~/.local/state/mango` and simply stay.
 
-- **`keybinds.conf` and `local.conf`** are yours once installed — every
-  binding lives in the first, your overrides (`monitorrule`, `exec-once`,
-  gaps, colours) in the second — and the installer brings your copies
-  back from the backup. When the shipped defaults changed since, the new
-  version is left beside yours as `keybinds.conf.new` to merge by hand,
-  and the installer says so.
-- **Settings the bar keeps** — monitor layouts, gaps, effects, bar size,
-  lock style, weather location, launcher history — live in
-  `~/.local/state/mango/`, outside the config folder, so an update never
-  touches them. (Older installs kept them in `~/.config/mango`; the bar
-  moves them across on its first start.)
-- **Your wallpaper** and the border colours taken from it come back too
-  (`theme.conf`, written by the wallpaper picker). The other generated
-  colour files (bar, rofi, kitty, dunst) are reset to the defaults, so
-  pick your wallpaper again from the bar's wallpaper picker, which
-  regenerates them all from the same image.
-- **`config.conf` itself** is replaced. If you edited it directly, your
-  copy is in the backup: `diff ~/.config/mango.bak.*/config.conf
-  ~/.config/mango/config.conf` and move what's yours into `local.conf`.
+Then reload with `Super+Shift+R` and restart the bar from the command
+menu, so it runs the new files. When a pull changed only config,
+`./install.sh --only-config` does the same without the package steps.
 
-Then reload with `Super+Shift+R`. When a
-pull changed only config, `./install.sh --only-config` does the same
-without the package steps. Delete the backup folder once you're happy.
+An install from before October 2026 kept everything in `~/.config/mango`.
+The installer recognises it, moves it whole to
+`~/.config/mango.bak.<date>`, and carries over your wallpapers, your
+wallpaper choice and colours, the bar's settings, and your `keybinds.conf`
+and `local.conf` if you had them. Edits you made inside the old
+`config.conf` are in the backup: `diff` it against
+`~/.local/share/mango/defaults.conf` and put yours in `local.conf`. Delete
+the backup once you're happy.
 
 ### Making it yours
 
-Three files in `~/.config/mango`, by who owns them:
+Three folders, by owner:
 
-| file | what goes there | on update |
+| folder | what's there | on update |
 |---|---|---|
-| `config.conf` | the shipped defaults: looks, effects, rules, autostart | replaced |
-| `keybinds.conf` | every key, mouse and gesture binding | kept; `.new` beside it if ours changed |
-| `local.conf` | your overrides, read last so they win: `monitorrule`, `exec-once`, any option, extra bindings | kept, never touched |
-| `theme.conf` | the wallpaper and its colours, written by the wallpaper picker | kept |
+| `~/.config/mango/` | **yours**: `config.conf` (three `source` lines), `keybinds.conf` (every binding), `local.conf` (your overrides, read last so they win), `env` (session environment), `wallpaper/` (add your own here) | never replaced; the four files follow the conffile rule above |
+| `~/.local/share/mango/` | **the setup's**: `defaults.conf`, `quickshell*/`, `scripts/`, templates for rofi, dunst, kitty, swappy | replaced wholesale |
+| `~/.local/state/mango/` | **generated**: `theme.conf` (wallpaper + colours), `colors.ini`, `colors.rasi`, `kitty-theme.conf`, `dunstrc`, and the bar's settings (monitor layouts, gaps, effects, bar size, lock style, weather, launcher history) | untouched |
 
 Change a key in `keybinds.conf` — mango has no `unbind` and every matching
 bind fires, so a second `bind=` for the same keys in `local.conf` would
-run both. `local.conf` ships with commented, working examples.
-`Super+Shift+R` reloads; the keybinds popup (`Super+/`) reads both files
-and opens the right one at the line.
+run both. Everything else goes in `local.conf`, which ships with
+commented, working examples. `Super+Shift+R` reloads; `mango -p` checks
+for mistakes and names the file and line; the keybinds popup (`Super+/`)
+reads both files and opens the right one at the line.
 
 ---
 
@@ -228,7 +223,7 @@ machine sleeps; it's off unless you turn it on.
 hour of rain on a dark map, looping, centred on the forecast's location
 (click for the full radar in the browser).
 
-Details in [`config/quickshell/README.md`](config/quickshell/README.md).
+Details in [`share/quickshell/README.md`](share/quickshell/README.md).
 
 ---
 
@@ -312,71 +307,58 @@ still shows you which window is live. The opacity slider needs mangowc
 ## 📂 Configuration Files
 
 ```
-~/.config/mango/
-├── config.conf           # the shipped defaults: look, input, layouts, autostart, rules
-├── keybinds.conf         # every binding — yours after install, never overwritten
-├── local.conf            # your overrides, read last — never touched
-├── theme.conf            # wallpaper + colours, written by the wallpaper picker
-├── (settings the bar keeps live in ~/.local/state/mango/, not here)
-├── env                   # session environment, sourced at login by mango-session
-├── kitty/                # session-local kitty config (kitty.conf + theme), see below
+~/.config/mango/              yours
+├── config.conf               # three source lines: defaults, keybinds, local
+├── keybinds.conf             # every binding — yours after install
+├── local.conf                # your overrides, read last
+├── env                       # session environment, sourced at login by mango-session
+└── wallpaper/                # the shipped set plus your own
+
+~/.local/share/mango/         the setup's — replaced on update
+├── defaults.conf             # look, input, layouts, autostart, rules
+├── quickshell/               # the bar (see its README)
+├── quickshell-network/       # the network app (its own qs instance)
+├── quickshell-lock/          # the lock screen (its own qs instance)
 ├── scripts/
-│   ├── bar               # quickshell helper: restart | log | ipc …
-│   ├── mango-ipc         # mmsg wrapper that finds the socket
-│   ├── wallpaper-theme   # the theming engine
-│   ├── screenshot        # grim/slurp: full | region
-│   ├── changevolume      # volume + notifications
-│   ├── keybinds          # keybinds.conf's binds for the keybinds popup
-│   ├── procs             # /proc snapshot for the metrics card
-│   ├── sysinfo           # disks, disk activity and temperatures for it
-│   ├── displays          # wlr-randr for the Displays card: list | save | apply | forget
-│   ├── radar             # map + rain tiles for the weather card's radar
-│   ├── launcher          # opens the app grid (rofi if the bar is down)
-│   ├── lock              # the lock screen (quickshell-lock) and its style
-│   ├── idle              # swayidle policy: screen off, optional lock
+│   ├── bar                   # quickshell helper: restart | log | ipc …
+│   ├── mango-ipc             # mmsg wrapper that finds the socket
+│   ├── wallpaper-theme       # the theming engine
+│   ├── screenshot            # grim/slurp: full | region
+│   ├── changevolume          # volume + notifications
+│   ├── keybinds              # keybinds.conf's binds for the keybinds popup
+│   ├── procs                 # /proc snapshot for the metrics card
+│   ├── sysinfo               # disks, disk activity and temperatures for it
+│   ├── displays              # wlr-randr for the Displays card: list | save | apply | forget
+│   ├── radar                 # map + rain tiles for the weather card's radar
+│   ├── launcher              # opens the app grid (rofi if the bar is down)
+│   ├── lock                  # the lock screen (quickshell-lock) and its style
+│   ├── idle                  # swayidle policy: screen off, optional lock
 │   ├── power / network
-├── quickshell/           # the bar (see its README)
-├── quickshell-network/   # the network app (its own qs instance)
-├── quickshell-lock/      # the lock screen (its own qs instance)
-├── rofi/                 # config / power .rasi (colors theme-managed)
-├── dunst/                # dunstrc (theme-managed)
-├── polybar/colors.ini    # the live palette the bar watches (name is historical)
-└── wallpaper/
+├── rofi/                     # config / power .rasi (the palette comes from state)
+├── dunst/dunstrc             # template; the coloured copy is in state
+├── kitty/kitty.conf          # session-local kitty config, see below
+└── swappy/config
+
+~/.local/state/mango/         generated — never replaced
+├── theme.conf                # wallpaper + colours, written by the wallpaper picker
+├── colors.ini                # the live palette the bar watches
+├── colors.rasi, kitty-theme.conf, dunstrc
+└── bar-height, mango-gaps, displays.conf, weather-location, …
 ```
-
----
-
-## 🖥️ Monitors, Scaling, Refresh Rate
-
-Nothing to configure for most setups: mango picks each monitor's preferred
-mode (normally its highest refresh rate) at scale 1. When you do need
-more, open **Displays** from the command menu (or the launcher's Displays
-action): resolution, refresh rate, scale and rotation per monitor, drag
-to arrange them, with a 15-second trial before a change is kept. What
-you keep is remembered for that set of monitors and comes back at login
-and when they're plugged in. The hand-edited route still works too: one
-`monitorrule` line per output in `config.conf` sets resolution, refresh,
-position, fractional scale and adaptive sync — two commented templates
-are waiting in the `outputs` section, and `wlr-randr` lists the names and
-modes to fill in. Tearing is allowed for fullscreen clients that ask for
-it (games), nothing else.
-
-Every monitor gets its own bar, showing its own tags and title; a popup
-opened from the keyboard appears on the monitor that has focus.
 
 ---
 
 ## 🐱 Kitty Is Session-Local
 
-`~/.config/mango/env` holds session environment, one line today:
-`KITTY_CONFIG_DIRECTORY=$HOME/.config/mango/kitty`. The mangowc package's
-session entry runs `mango-session`, which sources that file and then starts
-the compositor, so every kitty mango spawns reads the session's own kitty
-folder. That folder ships with the config (`kitty/kitty.conf` plus the
-theme file), the same layout as the dwm, bspwm and openbox setups. The
-wallpaper picker recolors the terminal there without touching
-`~/.config/kitty`, and a global kitty change never reaches this session
-unless you want it to. Works the same under lightdm, sddm, gdm, ly or a
+`~/.config/mango/env` holds session environment:
+`KITTY_CONFIG_DIRECTORY` pointing at the setup's `kitty/` folder, and
+`MANGO_STATE_DIR`, from which `kitty.conf` includes the wallpaper colours.
+The mangowc package's session entry runs `mango-session`, which sources
+that file and then starts the compositor, so every kitty mango spawns
+reads the session's own kitty config, the same idea as the dwm, bspwm and
+openbox setups. The wallpaper picker recolors the terminal there without
+touching `~/.config/kitty`, and a global kitty change never reaches this
+session unless you want it to. Works the same under lightdm, sddm, gdm, ly or a
 TTY start — they all run the session entry. Needs mangowc 0.14.4-4 or newer.
 
 ---
