@@ -79,7 +79,7 @@ git pull
 
 Nothing of yours is touched. The setup's own files — the bar, the
 scripts, the defaults, the templates — live in `~/.local/share/mango` and
-are replaced wholesale. Your folder, `~/.config/mango`, holds four files
+are replaced wholesale. Your folder, `~/.config/mango`, holds five files
 and your wallpapers, and the installer treats the files the way `dpkg`
 treats a conffile: one you never edited is updated silently; one you
 edited is kept, and if the shipped version changed since, the new one is
@@ -107,13 +107,17 @@ Three folders, by owner:
 
 | folder | what's there | on update |
 |---|---|---|
-| `~/.config/mango/` | **yours**: `config.conf` (three `source` lines), `keybinds.conf` (every binding), `local.conf` (your overrides, read last so they win), `env` (session environment), `wallpaper/` (add your own here) | never replaced; the four files follow the conffile rule above |
+| `~/.config/mango/` | **yours**: `config.conf` (four `source` lines), `autostart.conf` (what starts with the session), `keybinds.conf` (every binding), `local.conf` (your overrides, read last so they win), `env` (session environment), `wallpaper/` (add your own here) | never replaced; the five files follow the conffile rule above |
 | `~/.local/share/mango/` | **the setup's**: `defaults.conf`, `quickshell*/`, `scripts/`, templates for rofi, dunst, kitty, swappy | replaced wholesale |
 | `~/.local/state/mango/` | **generated**: `theme.conf` (wallpaper + colours), `colors.ini`, `colors.rasi`, `kitty-theme.conf`, `dunstrc`, and the bar's settings (monitor layouts, gaps, effects, bar size, lock style, weather, launcher history) | untouched |
 
 Change a key in `keybinds.conf` — mango has no `unbind` and every matching
 bind fires, so a second `bind=` for the same keys in `local.conf` would
-run both. Everything else goes in `local.conf`, which ships with
+run both. Add or drop a startup program in `autostart.conf`, for the same
+reason: an `exec-once` can't be cancelled from another file. (The
+wallpaper daemon and the wallpaper itself start from `defaults.conf` and
+`theme.conf` — they're the theming system.) Everything else goes in
+`local.conf`, which ships with
 commented, working examples. `Super+Shift+R` reloads; `mango -p` checks
 for mistakes and names the file and line; the keybinds popup (`Super+/`)
 reads both files and opens the right one at the line.
@@ -308,14 +312,15 @@ still shows you which window is live. The opacity slider needs mangowc
 
 ```
 ~/.config/mango/              yours
-├── config.conf               # three source lines: defaults, keybinds, local
+├── config.conf               # four source lines: defaults, autostart, keybinds, local
+├── autostart.conf            # what starts with the session — yours after install
 ├── keybinds.conf             # every binding — yours after install
 ├── local.conf                # your overrides, read last
 ├── env                       # session environment, sourced at login by mango-session
 └── wallpaper/                # the shipped set plus your own
 
 ~/.local/share/mango/         the setup's — replaced on update
-├── defaults.conf             # look, input, layouts, autostart, rules
+├── defaults.conf             # look, input, layouts, wallpaper daemon, rules
 ├── quickshell/               # the bar (see its README)
 ├── quickshell-network/       # the network app (its own qs instance)
 ├── quickshell-lock/          # the lock screen (its own qs instance)

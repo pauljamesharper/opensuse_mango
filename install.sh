@@ -210,8 +210,8 @@ fi
 # Three folders, by owner (see README, "Making it yours"):
 #   $SHARE_DIR   the setup's files: bar, scripts, defaults, templates —
 #                replaced wholesale on every update, nothing of yours lives here
-#   $CONFIG_DIR  the user's: config.conf, keybinds.conf, local.conf, env,
-#                wallpaper/ — never replaced; the four files follow dpkg's
+#   $CONFIG_DIR  the user's: config.conf, autostart.conf, keybinds.conf,
+#                local.conf, env, wallpaper/ — never replaced; the files follow dpkg's
 #                conffile rule (updated silently if never edited, otherwise
 #                kept with ours beside as FILE.new, said once)
 #   $STATE_DIR   generated files (palette, theme.conf, themed dunst, kitty
@@ -260,9 +260,9 @@ mkdir -p "$SHARE_DIR"
 cp -r "$SCRIPT_DIR"/share/* "$SHARE_DIR"/ || die "Failed to copy the setup's files"
 chmod +x "$SHARE_DIR"/scripts/*
 
-# The user's four files, dpkg's way. "Never edited" is known from the
-# copy of what was shipped last time, kept in the state folder.
-for f in config.conf keybinds.conf local.conf env; do
+# The user's files, dpkg's way. "Never edited" is known from the copy of
+# what was shipped last time, kept in the state folder.
+for f in config.conf autostart.conf keybinds.conf local.conf env; do
     ours="$SCRIPT_DIR/config/$f"; theirs="$CONFIG_DIR/$f"; prev="$STATE_DIR/shipped/$f"
     if [ ! -f "$theirs" ]; then
         cp "$ours" "$theirs"                              # first time: ours
@@ -283,7 +283,7 @@ if [ ${#KEPT_NEW[@]} -gt 0 ]; then
     msg "Kept your ${KEPT_NEW[*]}; the new defaults are beside as .new"
 fi
 # remember what was shipped this time (see above)
-cp "$SCRIPT_DIR"/config/{config.conf,keybinds.conf,local.conf,env} "$STATE_DIR/shipped/"
+cp "$SCRIPT_DIR"/config/{config.conf,autostart.conf,keybinds.conf,local.conf,env} "$STATE_DIR/shipped/"
 # MANGO_STATE_DIR in env is new in 2026-10; an env kept from before needs it
 grep -q '^MANGO_STATE_DIR=' "$CONFIG_DIR/env" || printf '\nMANGO_STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/mango\n' >> "$CONFIG_DIR/env"
 
