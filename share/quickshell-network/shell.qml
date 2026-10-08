@@ -59,6 +59,7 @@ ShellRoot {
         property bool busy: false
         property string status: ""
         property string pwFor: ""   // ssid currently asking for a password
+        property bool hiddenOpen: false   // the hidden-network row is showing
 
         readonly property string wifiDev: {
             for (const d of devices)
@@ -152,6 +153,21 @@ ShellRoot {
                 run(["nmcli", "--wait", "20", "dev", "wifi", "connect", ssid, "password", pw],
                     "connecting to " + ssid + "…")
             }
+        }
+
+        // a network that doesn't broadcast its name: nmcli needs the ssid
+        // typed and `hidden yes` to probe for it; no password for an open one
+        function connectHidden(ssid, pw) {
+            ssid = ssid.trim()
+            if (ssid === "") {
+                status = "type the network's name"
+                return
+            }
+            hiddenOpen = false
+            const cmd = ["nmcli", "--wait", "20", "dev", "wifi", "connect", ssid, "hidden", "yes"]
+            if (pw !== "")
+                cmd.push("password", pw)
+            run(cmd, "connecting to " + ssid + "…")
         }
 
         property var _err: []
@@ -860,6 +876,8 @@ ShellRoot {
                     win.closeShare()
                 else if (win.pwFor !== "")
                     win.pwFor = ""
+                else if (win.hiddenOpen)
+                    win.hiddenOpen = false
                 else
                     Qt.quit()
             }
@@ -1316,6 +1334,109 @@ ShellRoot {
                         delegate: netDelegate
                     }
 
+                    // a network that isn't in the list because it hides its
+                    // name: opened by the footer's "hidden" button
+                    Item {
+                        id: hiddenRow
+                        property bool showPw: false
+                        visible: win.hiddenOpen && win.wifiDev !== "" && win.wifiOn
+                        width: parent.width
+                        height: visible ? 38 : 0
+                        onVisibleChanged: if (!visible) { hiddenSsid.text = ""; hiddenPw.text = ""; showPw = false }
+
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.margins: 4
+                            radius: 8
+                            color: Qt.alpha(Theme.fg, 0.08)
+
+                            TextInput {
+                                id: hiddenSsid
+                                anchors.left: parent.left
+                                anchors.leftMargin: 10
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 130
+                                clip: true
+                                color: Theme.fg
+                                font.family: Theme.fontFamily
+                                font.pixelSize: 12
+                                focus: win.hiddenOpen
+                                onAccepted: hiddenPw.forceActiveFocus()
+                                Text {
+                                    visible: hiddenSsid.text === ""
+                                    text: "network name"
+                                    color: Theme.disabled
+                                    font: hiddenSsid.font
+                                }
+                            }
+                            TextInput {
+                                id: hiddenPw
+                                anchors.left: hiddenSsid.right
+                                anchors.right: hiddenEye.left
+                                anchors.leftMargin: 10
+                                anchors.rightMargin: 6
+                                anchors.verticalCenter: parent.verticalCenter
+                                echoMode: hiddenRow.showPw ? TextInput.Normal : TextInput.Password
+                                color: Theme.fg
+                                font.family: Theme.fontFamily
+                                font.pixelSize: 12
+                                onAccepted: win.connectHidden(hiddenSsid.text, text)
+                                Text {
+                                    visible: hiddenPw.text === ""
+                                    text: "password, if any"
+                                    color: Theme.disabled
+                                    font: hiddenPw.font
+                                }
+                            }
+                            Rectangle {
+                                id: hiddenEye
+                                anchors.right: hiddenGo.left
+                                anchors.rightMargin: 6
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 26
+                                height: 24
+                                radius: 7
+                                color: hiddenEyeMa.containsMouse ? Qt.alpha(Theme.fg, 0.14) : "transparent"
+                                Txt {
+                                    anchors.centerIn: parent
+                                    text: hiddenRow.showPw ? "󰈉" : "󰈈"
+                                    color: Qt.alpha(Theme.fg, 0.7)
+                                    font.pixelSize: 14
+                                }
+                                MouseArea {
+                                    id: hiddenEyeMa
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        hiddenRow.showPw = !hiddenRow.showPw
+                                        hiddenPw.forceActiveFocus()
+                                    }
+                                }
+                            }
+                            Rectangle {
+                                id: hiddenGo
+                                anchors.right: parent.right
+                                anchors.rightMargin: 4
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 64
+                                height: 24
+                                radius: 7
+                                color: Theme.accent
+                                Txt {
+                                    anchors.centerIn: parent
+                                    text: "join"
+                                    color: Theme.bg
+                                    font.bold: true
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: win.connectHidden(hiddenSsid.text, hiddenPw.text)
+                                }
+                            }
+                        }
+                    }
+
                     // Bluetooth — hidden entirely on machines without an adapter
                     Item {
                         visible: win.btPresent
@@ -1467,6 +1588,11 @@ ShellRoot {
                                 visible: win.wifiDev !== ""
                                 label: win.scanning ? "scanning…" : "rescan"
                                 onClicked: win.refresh(true)
+                            }
+                            SmallButton {
+                                visible: win.wifiDev !== "" && win.wifiOn
+                                label: win.hiddenOpen ? "cancel" : "hidden…"
+                                onClicked: win.hiddenOpen = !win.hiddenOpen
                             }
                             SmallButton {
                                 label: "advanced"
