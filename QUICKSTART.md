@@ -1,6 +1,6 @@
 # MangoWC Quick Start
 
-Super is the mod key. Config: `~/.config/mango/config.conf` (Super+Shift+r reloads live).
+Super is the mod key. Keys: `~/.config/mango/keybinds.conf`; your overrides: `local.conf`; the rest: `config.conf` (Super+Shift+r reloads live).
 
 ## Essentials
 | Keys | Action |

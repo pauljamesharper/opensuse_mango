@@ -23,7 +23,7 @@ Popout {
 
     function persistFile(name, v) {
         Quickshell.execDetached(["sh", "-c",
-            "printf '%s\\n' " + v + " > '" + Theme.configDir + "/" + name + "'"])
+            "printf '%s\\n' " + v + " > '" + Theme.stateDir + "/" + name + "'"])
     }
 
     Column {

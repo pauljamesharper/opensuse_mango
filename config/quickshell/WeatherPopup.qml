@@ -33,8 +33,8 @@ Popout {
     property string location: ""
     property string units: ""
 
-    readonly property string locationFile: Theme.configDir + "/weather-location"
-    readonly property string unitsFile: Theme.configDir + "/weather-units"
+    readonly property string locationFile: Theme.stateDir + "/weather-location"
+    readonly property string unitsFile: Theme.stateDir + "/weather-units"
     readonly property bool localeF: Qt.locale().measurementSystem !== Locale.MetricSystem
 
     cardWidth: radar ? 420 : 300

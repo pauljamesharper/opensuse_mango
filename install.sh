@@ -32,6 +32,7 @@ done
 # Paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_DIR="$HOME/.config/mango"
+KEPT_NEW=()
 TEMP_DIR="/tmp/mango_$$"
 LOG_FILE="$HOME/mango-install.log"
 
@@ -67,7 +68,7 @@ if [ "$ONLY_CONFIG" = false ]; then
 fi
 
 # Banner
-clear
+clear 2>/dev/null || true
 echo -e "${CYAN}"
 echo " +-+-+-+-+-+-+-+-+-+-+-+-+ "
 echo " |M|a|n|g|o| |S|e|t|u|p|  | "
@@ -207,15 +208,19 @@ else
 fi
 
 # Handle existing config
+BACKUP_DIR=""
 if [ -d "$CONFIG_DIR" ]; then
-    clear
+    clear 2>/dev/null || true
     read -p "Found existing Mango config. Backup? (y/n) " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        mv "$CONFIG_DIR" "$CONFIG_DIR.bak.$(date +%s)"
+        BACKUP_DIR="$CONFIG_DIR.bak.$(date +%Y%m%d-%H%M%S)"
+        # a second run in the same second must not mv into the first's folder
+        while [ -e "$BACKUP_DIR" ]; do BACKUP_DIR="$BACKUP_DIR-1"; done
+        mv "$CONFIG_DIR" "$BACKUP_DIR"
         msg "Backed up existing config"
     else
-        clear
+        clear 2>/dev/null || true
         read -p "Overwrite without backup? (y/n) " -n 1 -r
         echo
         [[ $REPLY =~ ^[Yy]$ ]] || die "Installation cancelled"
@@ -228,6 +233,63 @@ msg "Setting up configuration..."
 mkdir -p "$CONFIG_DIR"
 cp -r "$SCRIPT_DIR"/config/* "$CONFIG_DIR"/ || die "Failed to copy configs"
 chmod +x "$CONFIG_DIR"/scripts/*
+
+# Two files are the user's once installed: keybinds.conf (every binding)
+# and local.conf (their overrides). The rule is dpkg's for conffiles: a
+# file the user never edited is updated silently; one they edited is kept,
+# and when our default changed since, ours is left beside it as FILE.new
+# (said once). "Never edited" is known from the copy of what was shipped
+# last time, kept in the state folder. theme.conf (wallpaper + colours,
+# written by the wallpaper picker) comes back as is. Settings the bar
+# keeps (bar height, weather location, kept monitor layouts...) live in
+# the state folder and survive on their own.
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/mango"
+mkdir -p "$STATE_DIR/shipped"
+if [ -n "$BACKUP_DIR" ]; then
+    if [ -f "$BACKUP_DIR/theme.conf" ]; then
+        cp "$BACKUP_DIR/theme.conf" "$CONFIG_DIR/theme.conf"
+        # before 2026-10 the wallpaper line lived in config.conf; carry it
+        # into theme.conf, where the wallpaper picker writes it now
+        if ! grep -q '^exec-once=awww img' "$CONFIG_DIR/theme.conf"; then
+            grep '^exec-once=awww img' "$BACKUP_DIR/config.conf" >> "$CONFIG_DIR/theme.conf" 2>/dev/null || true
+        fi
+    fi
+    # settings the bar kept in the config folder before 2026-10 move to
+    # the state folder (the bar does the same on start; here they would
+    # otherwise sit forgotten in the backup)
+    for f in bar-height bar-scale popup-scale tag-icons mango-gaps mango-effects \
+             lock-idle lock-style pomodoro weather-location weather-units \
+             launcher-history displays.conf; do
+        [ -f "$BACKUP_DIR/$f" ] && [ ! -e "$STATE_DIR/$f" ] && mv "$BACKUP_DIR/$f" "$STATE_DIR/$f"
+    done
+    for f in keybinds.conf local.conf; do
+        theirs="$BACKUP_DIR/$f"; ours="$CONFIG_DIR/$f"; prev="$STATE_DIR/shipped/$f"
+        [ -f "$theirs" ] || continue                      # first install of this file: ours
+        cmp -s "$theirs" "$ours" && continue              # identical: nothing to do
+        if [ -f "$prev" ] && cmp -s "$theirs" "$prev"; then
+            continue                                      # never edited: ours, silently
+        fi
+        if [ -f "$prev" ] && cmp -s "$ours" "$prev"; then
+            cp "$theirs" "$ours"                          # edited, ours unchanged: theirs, silently
+            [ -f "$BACKUP_DIR/$f.new" ] && mv "$BACKUP_DIR/$f.new" "$CONFIG_DIR/$f.new"
+            continue
+        fi
+        # edited and ours changed: theirs stays; ours beside it as .new,
+        # unless that .new is already there from last time
+        if [ -f "$BACKUP_DIR/$f.new" ] && cmp -s "$BACKUP_DIR/$f.new" "$ours"; then
+            mv "$BACKUP_DIR/$f.new" "$CONFIG_DIR/$f.new"
+        else
+            cp "$ours" "$CONFIG_DIR/$f.new"
+            KEPT_NEW+=("$f")
+        fi
+        cp "$theirs" "$ours"
+    done
+    if [ ${#KEPT_NEW[@]} -gt 0 ]; then
+        msg "Kept your ${KEPT_NEW[*]}; the new defaults are beside as .new"
+    fi
+fi
+# remember what was shipped this time (see above)
+cp "$SCRIPT_DIR/config/keybinds.conf" "$SCRIPT_DIR/config/local.conf" "$STATE_DIR/shipped/"
 
 # Session environment ($CONFIG_DIR/env, just copied) is sourced by
 # mango-session, the login wrapper the mangowc package's session entry runs
@@ -329,7 +391,7 @@ if [ "$ONLY_CONFIG" = false ]; then
     fi
 
     # Optional tools
-    clear
+    clear 2>/dev/null || true
     read -p "Install optional tools (browsers, editors, etc)? (y/n) " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then

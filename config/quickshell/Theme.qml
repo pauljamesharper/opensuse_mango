@@ -23,6 +23,16 @@ Singleton {
         return sd.substring(0, sd.lastIndexOf("/"))
     }
 
+    // Settings the bar keeps between restarts (bar height, weather
+    // location, kept monitor layouts...) live outside the config folder,
+    // in XDG_STATE_HOME, so reinstalling or updating the config never
+    // loses them. scripts/bar creates the folder and moves old files in.
+    readonly property string stateDir: {
+        const env = String(Quickshell.env("XDG_STATE_HOME") ?? "")
+        const base = env !== "" ? env : String(Quickshell.env("HOME") ?? "") + "/.local/state"
+        return base + "/mango"
+    }
+
     // bar height (px) and element scale, persisted to plain files (like
     // weather-location) so the tweaks sliders survive restarts
     property int barHeight: 42
@@ -102,7 +112,7 @@ Singleton {
     readonly property real popupScale: popupUserScale
 
     FileView {
-        path: root.configDir + "/bar-height"
+        path: root.stateDir + "/bar-height"
         watchChanges: true
         onFileChanged: reload()
         onLoadFailed: root._barStateLoads++
@@ -115,7 +125,7 @@ Singleton {
     }
 
     FileView {
-        path: root.configDir + "/bar-scale"
+        path: root.stateDir + "/bar-scale"
         watchChanges: true
         onFileChanged: reload()
         onLoadFailed: root._barStateLoads++
@@ -131,14 +141,14 @@ Singleton {
     // the Tags strip shows which apps sit on each tag (layout picker toggle)
     property bool tagIcons: false
     FileView {
-        path: root.configDir + "/tag-icons"
+        path: root.stateDir + "/tag-icons"
         watchChanges: true
         onFileChanged: reload()
         onLoaded: root.tagIcons = text().trim() === "1"
     }
 
     FileView {
-        path: root.configDir + "/popup-scale"
+        path: root.stateDir + "/popup-scale"
         watchChanges: true
         onFileChanged: reload()
         onLoadFailed: root.popupUserScale = 1.0

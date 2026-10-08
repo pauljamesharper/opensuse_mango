@@ -1,24 +1,34 @@
 #!/bin/sh
-# keybinds — every bind in config.conf as rows for the bar's keybinds popup
+# keybinds — every bind in keybinds.conf (and any the user added in
+# local.conf) as rows for the bar's keybinds popup
 # (quickshell/KeybindsPopup.qml), one per line, tab-separated:
-#   section  keys  description  line
+#   section  keys  description  where
 # keys: alternatives split by "|", each one "+"-joined keycaps.
-#   keybinds          print the rows
-#   keybinds open N   open config.conf in geany at line N
+# where: a line number in keybinds.conf, or local:N for local.conf.
+#   keybinds              print the rows
+#   keybinds open WHERE   open that file in geany at that line
 #
-# What it reads from config.conf:
+# What it reads from the files:
 #   "# --- name ---"   starts a section (name ends at ":", "(" or "---")
 #   "# Text"           right above a bind describes it; notes go above that.
 #                      Above a run of back-to-back binds it's a note for the
 #                      group, and each bind is labelled from its action.
 # Binds with the same description in a section share a row (arrows and
 # hjkl, XF86 keys and Super+F12), and runs of view/tag binds fold into one.
-CONF="$(dirname "$(dirname "$(readlink -f "$0")")")/config.conf"
+C="$(dirname "$(dirname "$(readlink -f "$0")")")"
+CONF="$C/keybinds.conf"
+LOCAL="$C/local.conf"
 
 if [ "$1" = open ]; then
-    exec geany --line="${2:-1}" "$CONF"
+    case "${2:-1}" in
+        local:*) exec geany --line="${2#local:}" "$LOCAL" ;;
+        *)       exec geany --line="${2:-1}" "$CONF" ;;
+    esac
 fi
 
+# local.conf only when it exists (a user may delete it)
+set --
+[ -f "$LOCAL" ] && set -- "$LOCAL"
 exec awk '
 function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
 function isbind(s) { return s ~ /^(bind[a-z]*|mousebind|axisbind|gesturebind)=/ }
@@ -85,7 +95,10 @@ BEGIN {
     K["btn_left"] = "Left click"; K["btn_right"] = "Right click"; K["btn_middle"] = "Middle click"
 }
 
-{ L[NR] = $0 }
+# local.conf is read after keybinds.conf; its binds land in a "local"
+# section (headers in it are ignored) and open there.
+FNR == 1 && NR > 1 { islocal = 1; L[NR] = "# --- local ---" ; W[NR] = "local:0"; NR++ }
+{ L[NR] = $0; W[NR] = (islocal ? "local:" FNR : FNR) }
 
 END {
     section = "other"; nrows = 0; lastfold = 0
@@ -122,7 +135,7 @@ END {
                 continue
             }
             nrows++
-            SEC[nrows] = section; LINE[nrows] = i
+            SEC[nrows] = section; LINE[nrows] = W[i]
             FOLD[nrows] = fid; FMODS[nrows] = f[1]; FACT[nrows] = action
             FKEYS[nrows] = keyname(f[2]); FFIRST[nrows] = arg; FLAST[nrows] = arg
             lastfold = nrows
@@ -141,7 +154,7 @@ END {
         if (k in SEEN) { KEYS[SEEN[k]] = KEYS[SEEN[k]] "|" keys; continue }
         nrows++
         SEEN[k] = nrows
-        SEC[nrows] = section; KEYS[nrows] = keys; DESC[nrows] = desc; LINE[nrows] = i
+        SEC[nrows] = section; KEYS[nrows] = keys; DESC[nrows] = desc; LINE[nrows] = W[i]
     }
 
     for (r = 1; r <= nrows; r++) {
@@ -151,7 +164,7 @@ END {
             KEYS[r] = combo(FMODS[r], fk)
             DESC[r] = folddesc(FACT[r], FFIRST[r], FLAST[r])
         }
-        printf "%s\t%s\t%s\t%d\n", SEC[r], KEYS[r], DESC[r], LINE[r]
+        printf "%s\t%s\t%s\t%s\n", SEC[r], KEYS[r], DESC[r], LINE[r]
     }
 }
-' "$CONF"
+' "$CONF" "$@"

@@ -33,7 +33,7 @@ Popout {
     readonly property int columns: 6
     readonly property int cellW: 112
     readonly property int cellH: 100
-    readonly property string historyFile: Theme.configDir + "/launcher-history"
+    readonly property string historyFile: Theme.stateDir + "/launcher-history"
 
     // quickshell fills this in the background after start; the binding
     // follows along, so an early open just shows what's scanned so far

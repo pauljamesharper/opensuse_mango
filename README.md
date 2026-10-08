@@ -79,27 +79,49 @@ git pull
 
 The installer asks before touching an existing `~/.config/mango`: say
 **yes** to the backup and it moves the old folder aside as
-`~/.config/mango.bak.<timestamp>`, then copies the new one in and installs
-any packages that are new since last time. Nothing of yours is lost, but
-two kinds of things live in that folder and have to be carried over by
-hand:
+`~/.config/mango.bak.<timestamp>`, copies the new one in and installs any
+packages that are new since last time. What's yours comes through:
 
-- **Your edits to `config.conf`** — `monitorrule` lines, keybinds you
-  changed, the wallpaper `exec-once` line. Diff the two files and copy
-  across what's yours: `diff ~/.config/mango.bak.*/config.conf ~/.config/mango/config.conf`
-- **Settings the bar keeps in small files** — kept monitor layouts, gaps,
-  effects, bar size, lock style, weather location. One line brings them
-  back:
+- **`keybinds.conf` and `local.conf`** are yours once installed — every
+  binding lives in the first, your overrides (`monitorrule`, `exec-once`,
+  gaps, colours) in the second — and the installer brings your copies
+  back from the backup. When the shipped defaults changed since, the new
+  version is left beside yours as `keybinds.conf.new` to merge by hand,
+  and the installer says so.
+- **Settings the bar keeps** — monitor layouts, gaps, effects, bar size,
+  lock style, weather location, launcher history — live in
+  `~/.local/state/mango/`, outside the config folder, so an update never
+  touches them. (Older installs kept them in `~/.config/mango`; the bar
+  moves them across on its first start.)
+- **Your wallpaper** and the border colours taken from it come back too
+  (`theme.conf`, written by the wallpaper picker). The other generated
+  colour files (bar, rofi, kitty, dunst) are reset to the defaults, so
+  pick your wallpaper again from the bar's wallpaper picker, which
+  regenerates them all from the same image.
+- **`config.conf` itself** is replaced. If you edited it directly, your
+  copy is in the backup: `diff ~/.config/mango.bak.*/config.conf
+  ~/.config/mango/config.conf` and move what's yours into `local.conf`.
 
-```bash
-B=$(ls -d ~/.config/mango.bak.* | tail -1)
-cp -n "$B"/{displays.conf,mango-effects,mango-gaps,bar-height,bar-scale,popup-scale,lock-style,lock-idle,tag-icons,weather-location,weather-units,launcher-history} ~/.config/mango/ 2>/dev/null
-```
-
-Then pick your wallpaper again from the bar's wallpaper picker, which
-regenerates the colour theme, and reload with `Super+Shift+R`. When a
+Then reload with `Super+Shift+R`. When a
 pull changed only config, `./install.sh --only-config` does the same
 without the package steps. Delete the backup folder once you're happy.
+
+### Making it yours
+
+Three files in `~/.config/mango`, by who owns them:
+
+| file | what goes there | on update |
+|---|---|---|
+| `config.conf` | the shipped defaults: looks, effects, rules, autostart | replaced |
+| `keybinds.conf` | every key, mouse and gesture binding | kept; `.new` beside it if ours changed |
+| `local.conf` | your overrides, read last so they win: `monitorrule`, `exec-once`, any option, extra bindings | kept, never touched |
+| `theme.conf` | the wallpaper and its colours, written by the wallpaper picker | kept |
+
+Change a key in `keybinds.conf` — mango has no `unbind` and every matching
+bind fires, so a second `bind=` for the same keys in `local.conf` would
+run both. `local.conf` ships with commented, working examples.
+`Super+Shift+R` reloads; the keybinds popup (`Super+/`) reads both files
+and opens the right one at the line.
 
 ---
 
@@ -261,9 +283,9 @@ Super is the mod key. Same muscle memory as the other setups.
 | `Super + Ctrl + S` / `Ctrl + Print` | Screenshot region to the clipboard |
 | `Super + Alt + S`      | Screenshot region, annotate in swappy  |
 
-`Super + /` opens the keybinds popup: every bind in `config.conf`,
+`Super + /` opens the keybinds popup: every bind in `keybinds.conf` (and `local.conf`),
 grouped by the config's `# --- section ---` headers. Type to filter;
-click a bind to open `config.conf` in geany at that line. The comment
+click a bind to open the file in geany at that line. The comment
 line right above a bind is its label, so add a bind, add a comment, and
 the popup knows. Mouse, scroll and touchpad binds are listed too.
 
@@ -291,9 +313,11 @@ still shows you which window is live. The opacity slider needs mangowc
 
 ```
 ~/.config/mango/
-├── config.conf           # everything: look, input, layouts, autostart, binds, rules
-├── theme.conf            # border colors, written by the wallpaper picker (sourced)
-├── mango-gaps, mango-effects  # picker state, re-applied by the bar on start
+├── config.conf           # the shipped defaults: look, input, layouts, autostart, rules
+├── keybinds.conf         # every binding — yours after install, never overwritten
+├── local.conf            # your overrides, read last — never touched
+├── theme.conf            # wallpaper + colours, written by the wallpaper picker
+├── (settings the bar keeps live in ~/.local/state/mango/, not here)
 ├── env                   # session environment, sourced at login by mango-session
 ├── kitty/                # session-local kitty config (kitty.conf + theme), see below
 ├── scripts/
@@ -302,7 +326,7 @@ still shows you which window is live. The opacity slider needs mangowc
 │   ├── wallpaper-theme   # the theming engine
 │   ├── screenshot        # grim/slurp: full | region
 │   ├── changevolume      # volume + notifications
-│   ├── keybinds          # config.conf's binds for the keybinds popup
+│   ├── keybinds          # keybinds.conf's binds for the keybinds popup
 │   ├── procs             # /proc snapshot for the metrics card
 │   ├── sysinfo           # disks, disk activity and temperatures for it
 │   ├── displays          # wlr-randr for the Displays card: list | save | apply | forget

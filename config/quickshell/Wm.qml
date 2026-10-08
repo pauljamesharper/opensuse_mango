@@ -88,7 +88,7 @@ Singleton {
             "printf 'blur=%s\\nshadows=%s\\nanimations=%s\\nborderpx=%s\\nunfocused_opacity=%s\\n' "
             + (blur ? 1 : 0) + " " + (shadows ? 1 : 0) + " " + (animations ? 1 : 0)
             + " " + borderpx + " " + unfocusedOpacity
-            + " > '" + Theme.configDir + "/mango-effects'"])
+            + " > '" + Theme.stateDir + "/mango-effects'"])
     }
     function setEffect(name, on) {
         root[name] = on
@@ -146,7 +146,7 @@ Singleton {
     // (a config reload resets setoption values; scripts/mango-reload asks
     // for a re-apply through the "wm" IpcHandler in shell.qml)
     FileView {
-        path: Theme.configDir + "/mango-gaps"
+        path: Theme.stateDir + "/mango-gaps"
         watchChanges: true
         onFileChanged: reload()
         onLoaded: {
@@ -157,7 +157,7 @@ Singleton {
 
     // effects state file, same lifecycle as the gaps one
     FileView {
-        path: Theme.configDir + "/mango-effects"
+        path: Theme.stateDir + "/mango-effects"
         watchChanges: true
         onFileChanged: reload()
         onLoaded: {

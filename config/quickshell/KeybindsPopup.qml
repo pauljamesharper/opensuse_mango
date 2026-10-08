@@ -54,7 +54,7 @@ Popout {
             const f = l.split("\t")
             if (f.length < 4)
                 continue
-            out.push({ section: f[0], desc: f[2], line: parseInt(f[3]),
+            out.push({ section: f[0], desc: f[2], line: f[3],
                        keys: f[1].split("|").map(k => k.split("+")) })
         }
         return out
@@ -312,7 +312,10 @@ Popout {
                                         anchors.right: parent.right
                                         anchors.rightMargin: 6
                                         y: 4 + 3
-                                        text: "L" + bindRow.modelData.line
+                                        // keybinds.conf line, or local.conf's
+                                        text: String(bindRow.modelData.line).startsWith("local:")
+                                              ? "local L" + String(bindRow.modelData.line).slice(6)
+                                              : "L" + bindRow.modelData.line
                                         opacity: rowMa.containsMouse ? 1 : 0
                                         color: Qt.alpha(Theme.fg, 0.4)
                                         font.pixelSize: 10

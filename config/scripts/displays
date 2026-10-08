@@ -15,14 +15,15 @@
 # rotation or mode.
 set -u
 
-state=${XDG_CONFIG_HOME:-$HOME/.config}/mango/displays.conf
+# kept layouts are a setting: outside the config folder (see scripts/bar)
+state=${XDG_STATE_HOME:-$HOME/.local/state}/mango/displays.conf
 
 case "${1:-list}" in
 list)
     exec wlr-randr --json
     ;;
 save)
-    cat > "$state"
+    mkdir -p "${state%/*}" && cat > "$state"
     ;;
 forget)
     rm -f "$state"

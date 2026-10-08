@@ -17,6 +17,16 @@ Singleton {
         return sd.substring(0, sd.lastIndexOf("/"))
     }
 
+    // Settings the bar keeps between restarts (bar height, weather
+    // location, kept monitor layouts...) live outside the config folder,
+    // in XDG_STATE_HOME, so reinstalling or updating the config never
+    // loses them. scripts/bar creates the folder and moves old files in.
+    readonly property string stateDir: {
+        const env = String(Quickshell.env("XDG_STATE_HOME") ?? "")
+        const base = env !== "" ? env : String(Quickshell.env("HOME") ?? "") + "/.local/state"
+        return base + "/mango"
+    }
+
     property color bg: "#0d1117"
     property color altbg: "#161b22"
     property color fg: "#c9d1d9"
@@ -33,7 +43,7 @@ Singleton {
     readonly property real popupScale: popupUserScale
 
     FileView {
-        path: root.configDir + "/popup-scale"
+        path: root.stateDir + "/popup-scale"
         watchChanges: true
         onFileChanged: reload()
         onLoadFailed: root.popupUserScale = 1.0

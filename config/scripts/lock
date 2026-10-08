@@ -5,15 +5,17 @@
 #   lock style X    set it (the next lock uses it)
 # The default style is rain on Butterbian, blur elsewhere.
 C="$(dirname "$(dirname "$(readlink -f "$0")")")"
+# the chosen style is a setting, kept outside the config folder (see scripts/bar)
+S="${XDG_STATE_HOME:-$HOME/.local/state}/mango"
 P="$C/quickshell-lock"
 
 case "${1:-}" in
 style)
     if [ -n "${2:-}" ]; then
-        printf '%s\n' "$2" > "$C/lock-style"
+        mkdir -p "$S" && printf '%s\n' "$2" > "$S/lock-style"
         exit 0
     fi
-    s=$(cat "$C/lock-style" 2>/dev/null)
+    s=$(cat "$S/lock-style" 2>/dev/null)
     if [ -z "$s" ]; then
         if grep -qs '^NAME="Butterbian"' /etc/os-release; then s=rain; else s=blur; fi
     fi

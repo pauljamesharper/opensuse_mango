@@ -61,7 +61,7 @@ BarModule {
             "\"$(pgrep -x wlsunset >/dev/null && echo night)\" " +
             "\"$(bluetoothctl show 2>/dev/null | awk '/Powered:/ { print $2; exit }')\" " +
             "\"$(command -v timeshift-launcher >/dev/null && echo timeshift)\" " +
-            "\"$(cat '" + Theme.configDir + "/lock-idle' 2>/dev/null)\" " +
+            "\"$(cat '" + Theme.stateDir + "/lock-idle' 2>/dev/null)\" " +
             "\"$('" + Theme.configDir + "/scripts/lock' style 2>/dev/null)\""]
         stdout: StdioCollector {
             onStreamFinished: {
@@ -115,11 +115,11 @@ BarModule {
     function persistPomo() {
         Quickshell.execDetached(["sh", "-c",
             "printf '%s %s\\n' " + Math.round(pomoEndMs) + " " + pomoMinutes +
-            " > '" + Theme.configDir + "/pomodoro'"])
+            " > '" + Theme.stateDir + "/pomodoro'"])
     }
 
     FileView {
-        path: Theme.configDir + "/pomodoro"
+        path: Theme.stateDir + "/pomodoro"
         watchChanges: true
         onFileChanged: reload()
         onLoaded: {
@@ -366,7 +366,7 @@ BarModule {
                               root.lockIdle = !root.lockIdle
                               Quickshell.execDetached(["sh", "-c",
                                   'printf "%s\\n" "$1" > "$2" && exec "$3"', "sh",
-                                  root.lockIdle ? "1" : "0", Theme.configDir + "/lock-idle",
+                                  root.lockIdle ? "1" : "0", Theme.stateDir + "/lock-idle",
                                   Theme.configDir + "/scripts/idle"])
                           } },
                         { icon: root.lockRain ? "󰊠" : "󰂵", name: "Lock style",
