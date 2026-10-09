@@ -284,6 +284,16 @@ if [ ${#KEPT_NEW[@]} -gt 0 ]; then
 fi
 # remember what was shipped this time (see above)
 cp "$SCRIPT_DIR"/config/{config.conf,autostart.conf,keybinds.conf,local.conf,env} "$STATE_DIR/shipped/"
+# and where it came from, for scripts/setup-update (the command menu's
+# "Update setup"); a zip download has no record and the entry says so
+if git -C "$SCRIPT_DIR" rev-parse HEAD >/dev/null 2>&1; then
+    git -C "$SCRIPT_DIR" rev-parse HEAD > "$STATE_DIR/shipped/commit"
+    git -C "$SCRIPT_DIR" rev-parse --abbrev-ref HEAD > "$STATE_DIR/shipped/branch"
+    git -C "$SCRIPT_DIR" remote get-url origin > "$STATE_DIR/shipped/remote" 2>/dev/null || echo "" > "$STATE_DIR/shipped/remote"
+    echo "$SCRIPT_DIR" > "$STATE_DIR/shipped/source"
+else
+    rm -f "$STATE_DIR/shipped/commit" "$STATE_DIR/shipped/branch" "$STATE_DIR/shipped/remote" "$STATE_DIR/shipped/source"
+fi
 # MANGO_STATE_DIR in env is new in 2026-10; an env kept from before needs it
 grep -q '^MANGO_STATE_DIR=' "$CONFIG_DIR/env" || printf '\nMANGO_STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/mango\n' >> "$CONFIG_DIR/env"
 
@@ -426,6 +436,7 @@ echo "3. Super + Space for application launcher"
 echo "4. Super + Shift + p for the wallpaper picker (re-themes the desktop from the image)"
 echo "5. Super + Shift + m for the command menu"
 echo "6. See ~/QUICKSTART-mango.md for a quick reference"
+echo "To update later: 'Update setup' in the command menu (or cd $SCRIPT_DIR && git pull && ./install.sh)"
 echo "Installation log: $LOG_FILE"
 
 # NetworkManager leaves alone any interface Debian's installer wrote into

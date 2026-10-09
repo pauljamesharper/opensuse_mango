@@ -77,6 +77,13 @@ git pull
 ./install.sh
 ```
 
+Or **Update setup** in the command menu (`Super+Shift+M`), which does the
+same from the folder you installed from — cloning it again if you deleted
+it. Nothing checks for updates on its own; the only time the setup asks
+is at the end of an update terminal you opened (the apt pill, or *Check
+updates*), where one line says if the setup has moved on and offers to
+pull it.
+
 Nothing of yours is touched. The setup's own files — the bar, the
 scripts, the defaults, the templates — live in `~/.local/share/mango` and
 are replaced wholesale. Your folder, `~/.config/mango`, holds five files
@@ -205,7 +212,7 @@ by itself when a laptop drops to 20%; **Quick settings** — power profile,
 keep awake, microphone, night light, do not disturb, Bluetooth and a focus
 timer, each tile saying what it is and its state; and **System** —
 notifications, snapshots (Timeshift, on Butterbian's btrfs installs), check
-updates, displays, keybindings, restart bar, power menu. An encrypted disk
+updates, update setup, displays, keybindings, restart bar, power menu. An encrypted disk
 shows a lock on its meter in the system card.
 
 **Displays** (command menu, or the launcher's Displays action) draws your

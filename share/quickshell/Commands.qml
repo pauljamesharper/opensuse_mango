@@ -449,8 +449,13 @@ BarModule {
                       run: () => Quickshell.execDetached(["kitty", "-e", "sh", "-c",
                           "sudo apt update && apt list --upgradable; " +
                           "qs -p \"$0\" ipc call updates check >/dev/null 2>&1; " +
+                          "\"$1\" offer; " +
                           "printf '\\ndone - press enter to close '; read _",
-                          Theme.shareDir + "/quickshell"]) },
+                          Theme.shareDir + "/quickshell", Theme.shareDir + "/scripts/setup-update"]) },
+                    // this setup, from its git clone: nothing checks on its own
+                    { icon: "󰊢", label: "Update setup",
+                      run: () => Quickshell.execDetached(["kitty", "-e",
+                          Theme.shareDir + "/scripts/setup-update"]) },
                     { icon: "󰍹", label: "Displays",
                       run: () => displays.visible = true },
                     { icon: "󰌌", label: "Keybindings",

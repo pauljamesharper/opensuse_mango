@@ -50,11 +50,14 @@ BarModule {
         if (mouse.button === Qt.MiddleButton) {
             checkProc.running = true
         } else {
+            // ...and, since updates were asked for, one look at whether the
+            // setup itself has moved on (scripts/setup-update offer)
             Quickshell.execDetached(["kitty", "-e", "sh", "-c",
                 "sudo apt update && sudo apt full-upgrade; " +
                 "qs -p \"$0\" ipc call updates check >/dev/null 2>&1; " +
+                "\"$1\" offer; " +
                 "printf '\\ndone - press enter to close '; read _",
-                Theme.shareDir + "/quickshell"])
+                Theme.shareDir + "/quickshell", Theme.shareDir + "/scripts/setup-update"])
         }
     }
 }
