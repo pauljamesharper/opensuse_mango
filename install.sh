@@ -339,6 +339,9 @@ fi
 
 # Setup directories
 xdg-user-dirs-update
+# thunar handles folders: the bar's wallpaper picker opens one via xdg-open,
+# and with no default set it falls to whichever .desktop sorts first
+command -v xdg-mime >/dev/null && xdg-mime default thunar.desktop inode/directory
 mkdir -p ~/Screenshots
 
 # Drop quickstart cheatsheet in $HOME (user can delete once read)
