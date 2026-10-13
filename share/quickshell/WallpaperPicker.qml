@@ -9,6 +9,10 @@ import Quickshell.Io
 // No pywal/wallust needed — quickshell is the color engine.
 Popout {
     id: root
+
+    cardWidth: 176 * 3 + 2 * cardPadding
+    cardHeight: 4 * 103 + folderRow.height + 4 + 2 * cardPadding
+
     ipcNames: ["wallpapers"]
     function ipc(fn, arg) {
         if (fn === "toggle") root.toggle()
@@ -16,20 +20,27 @@ Popout {
         else if (fn === "set") root.apply(arg)
     }
 
-    cardWidth: 176 * 3 + 2 * cardPadding
-    cardHeight: 4 * 103 + 2 * cardPadding
-
     property var wallpapers: []
     property string applyingPath: ""
     property bool randomPending: false
 
-    // re-scan the wallpaper dir on every open, so new files just show up
+    // re-scan the wallpaper dir on every open, so new files just show up;
+    // the grid takes key focus so arrows/Enter work without the mouse
     onVisibleChanged: {
-        if (visible)
+        if (visible) {
             lister.running = true
+            grid.forceActiveFocus()
+        }
     }
 
     function toggle() { visible = !visible }
+
+    // the folder the grid scans — open it in the file manager so new
+    // images can be dropped in; they appear on the picker's next open
+    function openFolder() {
+        Quickshell.execDetached(["xdg-open", Theme.shareDir + "/wallpaper"])
+        visible = false
+    }
 
     function applyRandom() {
         randomPending = true
@@ -103,19 +114,108 @@ Popout {
             }
         }
 
+        // "open folder" row above the grid (PR #5 on mangowc-setup, by
+        // abdrezzakboumediene) — mouse or `o`
+        Rectangle {
+            id: folderRow
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: 4
+            anchors.rightMargin: 4
+            height: 30
+            radius: 6
+            color: folderMouse.containsMouse ? Qt.alpha(Theme.accent, 0.2)
+                                             : Qt.alpha(Theme.fg, 0.06)
+
+            Row {
+                anchors.centerIn: parent
+                spacing: 8
+                Text {
+                    text: "󰉋"
+                    color: Theme.accent
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 14
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+                Text {
+                    text: "Open wallpaper folder"
+                    color: Theme.fg
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 12
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+                Text {
+                    text: "o"
+                    color: Qt.alpha(Theme.fg, 0.5)
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 10
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+
+            MouseArea {
+                id: folderMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.openFolder()
+            }
+        }
+
         GridView {
             id: grid
-            anchors.fill: parent
+            anchors.top: folderRow.bottom
+            anchors.topMargin: 4
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
             clip: true
             cellWidth: 176
             cellHeight: 103
             cacheBuffer: 4000
             model: root.wallpapers
 
+            // keyboard: arrows/hjkl move, Enter/Space applies, o opens the
+            // folder, Escape closes
+            // (handled here: with the grid focused the event doesn't reach
+            // Popout's own Escape handler)
+            focus: true
+            keyNavigationWraps: true
+            highlightFollowsCurrentItem: true
+            highlightMoveDuration: 0
+            currentIndex: -1
+            onModelChanged: currentIndex = count > 0 ? 0 : -1
+            Keys.onPressed: event => {
+                switch (event.key) {
+                case Qt.Key_H: moveCurrentIndexLeft(); break
+                case Qt.Key_L: moveCurrentIndexRight(); break
+                case Qt.Key_K: moveCurrentIndexUp(); break
+                case Qt.Key_J: moveCurrentIndexDown(); break
+                case Qt.Key_Return:
+                case Qt.Key_Enter:
+                case Qt.Key_Space:
+                    if (currentIndex >= 0)
+                        root.apply(root.wallpapers[currentIndex])
+                    break
+                case Qt.Key_O:
+                    root.openFolder()
+                    break
+                case Qt.Key_Escape:
+                    root.visible = false
+                    break
+                default:
+                    event.accepted = false
+                    return
+                }
+                event.accepted = true
+            }
+
             delegate: Item {
                 id: cell
                 required property string modelData
                 readonly property bool busy: root.applyingPath === modelData
+                readonly property bool current: grid.activeFocus && GridView.isCurrentItem
                 width: grid.cellWidth
                 height: grid.cellHeight
 
@@ -139,7 +239,7 @@ Popout {
                         anchors.fill: parent
                         radius: 6
                         color: "transparent"
-                        border.width: cell.busy ? 3 : mouse.containsMouse ? 2 : 0
+                        border.width: cell.busy ? 3 : (mouse.containsMouse || cell.current) ? 2 : 0
                         border.color: cell.busy ? Theme.accent : Qt.alpha(Theme.accent, 0.8)
 
                         SequentialAnimation on opacity {

@@ -240,7 +240,8 @@ Details in [`share/quickshell/README.md`](share/quickshell/README.md).
 
 ## 🎨 Wallpaper-Driven Theming
 
-`Super + Shift + P` opens the wallpaper picker. Pick an image and the desktop
+`Super + Shift + P` opens the wallpaper picker (arrows or `hjkl` move, Enter
+applies, `o` opens the wallpaper folder, Escape closes). Pick an image and the desktop
 re-colors itself from it: the bar, rofi, dunst, kitty, the GTK theme and icon
 set, and mango's own border colors — then the new wallpaper wipes across the
 screen. The palette is extracted right in the picker; nothing to configure.
