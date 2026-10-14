@@ -131,6 +131,8 @@ PACKAGES_WAYLAND=(
 )
 
 PACKAGES_UI=(
+    # gtk + icon themes (butterrepo: prebuilt vinceliuice selections, see deb-builders)
+    orchis-gtk-theme-butter colloid-icon-theme-butter
     nwg-look xsettingsd lxpolkit
 )
 
