@@ -208,25 +208,27 @@ mkdir -p "$HOME/.cache/mango" "$HOME/.config/dunst"
 echo "$IMG" > "$HOME/.cache/mango/current_wallpaper"
 ln -sfn "$DUNSTRC" "$HOME/.config/dunst/dunstrc"
 
-# 7. GTK — wpgtk-style recolor: copy Orchis-Dark-Nord and substitute its
+# 7. GTK — wpgtk-style recolor: copy Orchis-Nord-Template and substitute its
 #    (fixed, known) palette with ours. Text in Orchis-dark is white-alpha,
 #    so only accents/surfaces need mapping. Two alternating theme names so
 #    xsettingsd always sees a name change and live-restyles GTK3 apps.
-GTK_SRC="$HOME/.themes/Orchis-Dark-Nord"
+# the template lives in ~/.themes (theme installer) or /usr/share/themes
+# (butterrepo's orchis-gtk-theme-butter); the user copy wins
+GTK_SRC="$HOME/.themes/Orchis-Nord-Template"
+[ -d "$GTK_SRC" ] || GTK_SRC="/usr/share/themes/Orchis-Nord-Template"
 GTK3_CONF="$HOME/.config/gtk-3.0/settings.ini"
 # The substitutions below target the plain-Nord build's exact hexes. A missing
-# template (theme installer failed, or a config-only install) or the black-tweak
-# build of the same name (qtile's install_theme.sh) would leave GTK silently
-# unthemed - say so on screen instead.
+# template (theme installer failed, or a config-only install) or a wrong build
+# would leave GTK silently unthemed - say so on screen instead.
 gtk_template_ok() {
     if [ ! -d "$GTK_SRC" ]; then
         notify-send -a "Wallpaper" -u critical "GTK not themed" \
-            "Orchis-Dark-Nord is missing. Rerun the theme installer:\ntheming/install_wallpaper_theme.sh"
+            "Orchis-Nord-Template is missing. Rerun the theme installer:\ntheming/install_wallpaper_theme.sh"
         return 1
     fi
     if ! grep -qi '#242932' "$GTK_SRC/gtk-3.0/gtk.css" 2>/dev/null; then
         notify-send -a "Wallpaper" -u critical "GTK not themed" \
-            "Orchis-Dark-Nord is the black-tweak build. Rerun the theme installer:\ntheming/install_wallpaper_theme.sh"
+            "Orchis-Nord-Template is not the plain-Nord build. Rerun the theme installer:\ntheming/install_wallpaper_theme.sh"
         return 1
     fi
 }
