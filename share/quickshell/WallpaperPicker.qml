@@ -2,7 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Wallpaper picker popup: a thumbnail grid of ~/.config/bspwm/wallpaper.
+// Wallpaper picker popup: a thumbnail grid of the config folder's wallpaper/.
 // Picking one extracts a palette from the image right here (hidden Image →
 // Canvas histogram → HSL-derived semantic colors) and hands wallpaper +
 // palette to scripts/wallpaper-theme, which re-themes the whole desktop.
@@ -38,7 +38,7 @@ Popout {
     // the folder the grid scans — open it in the file manager so new
     // images can be dropped in; they appear on the picker's next open
     function openFolder() {
-        Quickshell.execDetached(["xdg-open", Theme.shareDir + "/wallpaper"])
+        Quickshell.execDetached(["xdg-open", Theme.confDir + "/wallpaper"])
         visible = false
     }
 
@@ -59,7 +59,7 @@ Popout {
         id: lister
         // no SVGs: Qt's loader chokes on ones with external references
         command: ["sh", "-c",
-            "find \"" + Theme.shareDir + "/wallpaper\" -maxdepth 1 -type f " +
+            "find \"" + Theme.confDir + "/wallpaper\" -maxdepth 1 -type f " +
             "\\( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \\) | sort"]
         stdout: SplitParser {
             onRead: line => { if (line.trim() !== "") root._found.push(line.trim()) }
