@@ -177,7 +177,7 @@ Item {
 
     Process {
         id: loader
-        command: [Theme.configDir + "/scripts/keybinds"]
+        command: [root.tool]
         stdout: StdioCollector {
             onStreamFinished: root.rows = root.parse(text)
         }

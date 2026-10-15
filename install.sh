@@ -77,10 +77,6 @@ echo " |W|a|y|l|a|n|d| |W|M|    | "
 echo " +-+-+-+-+-+-+-+-+-+-+-+-+ "
 echo -e "${NC}\n"
 
-read -p "Install MangoWC? (y/n) " -n 1 -r
-echo
-[[ ! $REPLY =~ ^[Yy]$ ]] && exit 1
-
 # Update system
 # A machine with no login screen yet (a minimal Debian) needs a reboot at
 # the end, not a logout: remembered now, before one gets installed
