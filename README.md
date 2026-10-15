@@ -288,16 +288,31 @@ Super is the mod key. Same muscle memory as the other setups.
 | `Super + Shift + P`    | Wallpaper picker                       |
 | `Super + Shift + M`    | Command menu                           |
 | `Super + Shift + N`    | Network app                            |
-| `Super + Shift + T`    | Layout / tweaks picker                 |
+| `Super + Shift + T`    | Settings panel, Layout tab             |
 | `Super + S` / `Super + Shift + S` | Screenshot full / region (to `~/Screenshots`); `Print` / `Shift + Print` too |
 | `Super + Ctrl + S` / `Ctrl + Print` | Screenshot region to the clipboard |
 | `Super + Alt + S`      | Screenshot region, annotate in swappy  |
 
-`Super + /` opens the keybinds popup: every bind in `keybinds.conf` (and `local.conf`),
-grouped by the config's `# --- section ---` headers. Type to filter;
-click a bind to open the file in geany at that line. The comment
-line right above a bind is its label, so add a bind, add a comment, and
-the popup knows. Mouse, scroll and touchpad binds are listed too.
+`Super + /` opens the bar's **settings panel** on its Keybinds tab, one
+card with the tabs down the left. **Keybinds** lists every bind in
+`keybinds.conf` (and `local.conf`), grouped by the config's
+`# --- section ---` headers; type to filter, click a bind to edit it
+(record a chord, change the label or what it runs), `+` on a section
+adds one, right-click opens the file at the line. **Rules** is
+`rules.conf`: which apps float, open on a tag, or are a scratchpad —
+pick an open window, say what it should do, and a scratchpad's toggle
+key is written to `keybinds.conf` with it. **Layout** holds the layout
+grid, the gap, border, master and unfocused-opacity sliders and the
+blur, shadows and animation toggles. **Bar** holds bar height, element
+scale, popup size, the tag-icons toggle and the Modules lists: three
+zones, left, center and right, every module shown or hidden,
+reordered, or moved to another zone, live (the launcher stays first
+and the command menu last; the window title is a module too, so the
+clock can sit in the middle). **Wallpaper** is the thumbnail grid that
+re-themes the desktop; **Displays** arranges, sizes and rotates
+outputs. Apply, bottom left, reloads mango once the Keybinds or Rules
+tab has saved something. Ctrl+PgUp/PgDn walk the tabs; Tab walks an
+editor's fields; Escape closes.
 
 **Touchpad:** three fingers swipe through the tags, three up for the
 overview; four fingers carry the focused window along. The bottom-left
