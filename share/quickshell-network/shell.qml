@@ -858,9 +858,17 @@ ShellRoot {
             }
         }
 
+        // a prompt that closes (password, hidden network, share) takes the
+        // keyboard with it: Escape and the rest come back to the content
+        // root only if it is given the focus again
+        onPwForChanged: if (pwFor === "") uiRoot.forceActiveFocus()
+        onHiddenOpenChanged: if (!hiddenOpen) uiRoot.forceActiveFocus()
+        onSharingChanged: if (!sharing) uiRoot.forceActiveFocus()
+
         // --- UI ---
 
         Item {
+            id: uiRoot
             width: 440
             height: win.height / Theme.popupScale
             scale: Theme.popupScale
