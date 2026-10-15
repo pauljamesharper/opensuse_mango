@@ -48,7 +48,12 @@ PanelWindow {
     // with more verbs than toggle replace ipc().
     property var ipcNames: []
     readonly property bool onFocusedOutput: !screen || Wm.monitor === "" || screen.name === Wm.monitor
-    function ipc(fn, arg) { if (fn === "toggle") visible = !visible }
+    // toggle, or open / close outright (scripts that must not guess)
+    function ipc(fn, arg) {
+        if (fn === "toggle") visible = !visible
+        else if (fn === "open") visible = true
+        else if (fn === "close") visible = false
+    }
     Connections {
         target: BarIpc
         enabled: root.ipcNames.length > 0

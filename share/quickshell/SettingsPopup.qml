@@ -32,6 +32,8 @@ Popout {
         }
         if (fn === "toggle") {
             visible = !visible
+        } else if (fn === "close") {
+            visible = false
         } else if (fn === "open") {
             const i = tabs.findIndex(t => t.key === arg)
             tab = i < 0 ? 0 : i
