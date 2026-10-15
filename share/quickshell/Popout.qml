@@ -11,8 +11,6 @@ import Quickshell.Wayland
 // The same card chrome and behaviour as the X11 ports' Popout.
 PanelWindow {
     id: root
-    // a key press no child accepted (the panels' tab switching)
-    signal keyPressed(var event)
     function takeFocus() { inner.forceActiveFocus() }
 
     property Item anchorItem
@@ -132,8 +130,6 @@ PanelWindow {
             anchors.margins: root.cardPadding
             focus: true
             Keys.onEscapePressed: root.visible = false
-            // keys nothing inside took: the popup's own shortcuts
-            Keys.onPressed: event => root.keyPressed(event)
         }
     }
 }

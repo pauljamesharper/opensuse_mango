@@ -69,13 +69,10 @@ Popout {
         }
     }
     // Ctrl+PageDown / Ctrl+PageUp walk the tabs (Ctrl+Tab is the
-    // Keybinds tab's chips); the arriving tab gets the keyboard
-    onKeyPressed: event => {
-        if (!(event.modifiers & Qt.ControlModifier)) return
-        if (event.key !== Qt.Key_PageDown && event.key !== Qt.Key_PageUp) return
-        tab = (tab + (event.key === Qt.Key_PageDown ? 1 : tabs.length - 1)) % tabs.length
-        event.accepted = true
-    }
+    // Keybinds tab's chips). Window shortcuts: they fire before the
+    // search field or the wallpaper grid can swallow the key.
+    Shortcut { sequences: ["Ctrl+PgDown"]; onActivated: root.tab = (root.tab + 1) % root.tabs.length }
+    Shortcut { sequences: ["Ctrl+PgUp"]; onActivated: root.tab = (root.tab + root.tabs.length - 1) % root.tabs.length }
     onTabChanged: {
         takeFocus()
         if (!visible)
