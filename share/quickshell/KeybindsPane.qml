@@ -77,21 +77,21 @@ Item {
 
     // one verb at a time; the exit code rides on the first output line
     Process {
-        id: tool
+        id: proc
         property var done: null
         stdout: StdioCollector {
             onStreamFinished: {
-                const f = tool.done
-                tool.done = null
+                const f = proc.done
+                proc.done = null
                 const i = text.indexOf("\n")
                 if (f) f(parseInt(text.slice(0, i)), text.slice(i + 1))
             }
         }
     }
     function run(args, cb) {
-        tool.done = cb
-        tool.command = ["sh", "-c", 'o=$("$0" "$@" 2>&1); r=$?; printf "%s\\n%s" "$r" "$o"', root.tool].concat(args)
-        tool.running = true
+        proc.done = cb
+        proc.command = ["sh", "-c", 'o=$("$0" "$@" 2>&1); r=$?; printf "%s\\n%s" "$r" "$o"', root.tool].concat(args)
+        proc.running = true
     }
     function setStatus(s, bad) { status = s; statusBad = bad }
 
@@ -132,7 +132,7 @@ Item {
             return
         stopRecording()
         const e = editing
-        const ck = splitChord(chordField.text)
+        const ck = chordField.split(chordField.text)
         if (ck[1] === "") { setStatus("the chord needs a key", true); return }
         if (valueField.text.trim() === "") {
             setStatus(editKind === "run" ? "what should it run?" : "which action? (see the file's header)", true)
