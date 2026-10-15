@@ -92,7 +92,7 @@ innermost() {
                   if (n) print kids[n] }' /proc/[0-9]*/stat 2>/dev/null)
         [ -n "$child" ] || break
         pid="$child"
-        name=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | sed 's/ $//')
+        name=$(tr '\0' ' ' 2>/dev/null < "/proc/$pid/cmdline" | sed 's/ $//')
         # an interpreter running a script is the script (python3 /usr/bin/pulsemixer)
         case "${name%% *}" in
             */python*|python*|*/perl|perl|*/ruby|ruby|*/node|node|*/lua*|lua*) name="${name#* }" ;;
