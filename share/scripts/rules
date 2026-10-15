@@ -78,6 +78,34 @@ check() {
 }
 commit() { if check "$1"; then mv "$1" "$CONF"; else rm -f "$1"; return 1; fi; }
 
+# the program a terminal is showing: follow first children down from the
+# window's pid, skipping shells; empty when it ends in a shell (a plain
+# terminal) or the window has no children (a GUI app)
+innermost() {
+    pid="$1"; found=""
+    while :; do
+        # the child that has children of its own (the shell under a
+        # terminal, past kitty's kitten helper), else the newest child
+        child=$(awk -v pp="$pid" '
+            { ppid[$1] = $4; if ($4 == pp) kids[++n] = $1 }
+            END { for (i = 1; i <= n; i++) for (q in ppid) if (ppid[q] == kids[i]) { print kids[i]; exit }
+                  if (n) print kids[n] }' /proc/[0-9]*/stat 2>/dev/null)
+        [ -n "$child" ] || break
+        pid="$child"
+        name=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | sed 's/ $//')
+        # an interpreter running a script is the script (python3 /usr/bin/pulsemixer)
+        case "${name%% *}" in
+            */python*|python*|*/perl|perl|*/ruby|ruby|*/node|node|*/lua*|lua*) name="${name#* }" ;;
+        esac
+        case "${name%% *}" in
+            */bash|bash|*/zsh|zsh|*/fish|fish|*/sh|sh|*/dash|dash) found="" ;;
+            "") ;;
+            *) found="$name" ;;
+        esac
+    done
+    printf '%s\n' "$found"
+}
+
 case "${1:-}" in
 "")
     [ -f "$CONF" ] || exit 0
@@ -158,18 +186,23 @@ delete)
     commit "$tmp" || exit 1
     ;;
 pick)
-    # the open windows, one per line: appid, title, the command that opened
-    # it (the process's command line; a scratchpad's "opened by" starts
-    # from it). The bar's own windows are left out.
+    # the open windows, one per line: appid, title, the command that
+    # opened it (the process's command line), and for a terminal the
+    # program running inside it (its deepest child that isn't a shell) —
+    # a kitty showing pulsemixer is matched and opened as pulsemixer, not
+    # as every kitty. The bar's own windows are left out.
     "$IPC" get all-clients 2>/dev/null | tr '{' '\n' | awk '
         match($0, /"title":"([^"\\]|\\.)*"/) { t = substr($0, RSTART + 9, RLENGTH - 10)
             if (match($0, /"appid":"([^"\\]|\\.)*"/)) { a = substr($0, RSTART + 9, RLENGTH - 10)
                 p = ""; if (match($0, /"pid":[0-9]+/)) p = substr($0, RSTART + 6, RLENGTH - 6)
                 if (a != "org.quickshell" && a != "") printf "%s\t%s\t%s\n", a, t, p } }' |
     while IFS="$(printf '\t')" read -r a t p; do
-        cmd=""
-        [ -n "$p" ] && [ -r "/proc/$p/cmdline" ] && cmd=$(tr '\0' ' ' < "/proc/$p/cmdline" | sed 's/ $//')
-        printf '%s\t%s\t%s\n' "$a" "$t" "$cmd"
+        cmd=""; inner=""
+        if [ -n "$p" ] && [ -r "/proc/$p/cmdline" ]; then
+            cmd=$(tr '\0' ' ' < "/proc/$p/cmdline" | sed 's/ $//')
+            inner=$(innermost "$p")
+        fi
+        printf '%s\t%s\t%s\t%s\n' "$a" "$t" "$cmd" "$inner"
     done
     ;;
 check)  [ -f "$CONF" ] && check "$CONF" ;;

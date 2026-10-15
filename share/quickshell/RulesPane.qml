@@ -200,18 +200,36 @@ Item {
             const w = []
             for (const l of out.split("\n")) {
                 const f = l.split("\t")
-                if (f.length >= 2 && !w.find(x => x.appid === f[0])) w.push({ appid: f[0], title: f[1], cmd: f[2] ?? "" })
+                if (f.length < 2) continue
+                const inner = f[3] ?? ""
+                // a terminal showing a program: offered as that program (a
+                // rule on the bare terminal would catch every terminal)
+                const key = inner !== "" ? f[0] + " " + inner : f[0]
+                if (!w.find(x => x.key === key)) w.push({ key: key, appid: f[0], title: f[1], cmd: f[2] ?? "", inner: inner })
             }
             windows = w
             if (w.length === 0) { showMatch = true; focusEditor() }
         })
     }
+    // how each terminal is told its app id (the scratchpad's name)
+    readonly property var classFlag: ({ kitty: "--class", foot: "--app-id", alacritty: "--class", wezterm: "--class", ghostty: "--class" })
     function choose(w) {
         if (!editing) editing = { line: 0, section: "", isNew: true, title: "" }
-        idField.text = w.appid; titleField.text = ""
-        pickedCmd = w.cmd
+        titleField.text = ""
+        if (w.inner !== "") {
+            // kitty running pulsemixer → app id pulsemixer, opened by
+            // kitty --class pulsemixer -e pulsemixer
+            const prog = w.inner.split(" ")[0].split("/").pop()
+            const term = (w.cmd.split(" ")[0] || w.appid).split("/").pop()
+            idField.text = prog
+            pickedCmd = term + " " + (classFlag[term] ?? "--class") + " " + prog + " -e " + w.inner
+            setStatus(term + " showing " + prog + ": matched as " + prog + ", opened by " + pickedCmd, false)
+        } else {
+            idField.text = w.appid
+            pickedCmd = w.cmd
+        }
         if (scratch && runField.text.trim() === "") runField.text = w.cmd
-        windows = null; showMatch = false; status = ""
+        windows = null; showMatch = false
     }
     function edit(line) {
         popup.visible = false
@@ -457,7 +475,8 @@ Item {
                     model: root.windows ?? []
                     Pill {
                         required property var modelData
-                        label: modelData.appid + (modelData.title !== "" ? "  ·  " + modelData.title.slice(0, 40) : "")
+                        label: modelData.inner !== "" ? modelData.appid + "  ·  " + modelData.inner.split(" ")[0].split("/").pop()
+                             : modelData.appid + (modelData.title !== "" ? "  ·  " + modelData.title.slice(0, 40) : "")
                         onClicked: root.choose(modelData)
                     }
                 }
