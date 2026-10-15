@@ -260,7 +260,7 @@ chmod +x "$SHARE_DIR"/scripts/*
 
 # The user's files, dpkg's way. "Never edited" is known from the copy of
 # what was shipped last time, kept in the state folder.
-for f in config.conf autostart.conf keybinds.conf local.conf env; do
+for f in config.conf autostart.conf keybinds.conf rules.conf local.conf env; do
     ours="$SCRIPT_DIR/config/$f"; theirs="$CONFIG_DIR/$f"; prev="$STATE_DIR/shipped/$f"
     if [ ! -f "$theirs" ]; then
         cp "$ours" "$theirs"                              # first time: ours
@@ -281,7 +281,7 @@ if [ ${#KEPT_NEW[@]} -gt 0 ]; then
     msg "Kept your ${KEPT_NEW[*]}; the new defaults are beside as .new"
 fi
 # remember what was shipped this time (see above)
-cp "$SCRIPT_DIR"/config/{config.conf,autostart.conf,keybinds.conf,local.conf,env} "$STATE_DIR/shipped/"
+cp "$SCRIPT_DIR"/config/{config.conf,autostart.conf,keybinds.conf,rules.conf,local.conf,env} "$STATE_DIR/shipped/"
 # and where it came from, for scripts/setup-update (the command menu's
 # "Update setup"); a zip download has no record and the entry says so
 if git -C "$SCRIPT_DIR" rev-parse HEAD >/dev/null 2>&1; then
@@ -292,6 +292,8 @@ if git -C "$SCRIPT_DIR" rev-parse HEAD >/dev/null 2>&1; then
 else
     rm -f "$STATE_DIR/shipped/commit" "$STATE_DIR/shipped/branch" "$STATE_DIR/shipped/remote" "$STATE_DIR/shipped/source"
 fi
+# rules.conf is new in 2026-10; a config.conf kept from before needs to read it
+grep -q 'rules\.conf' "$CONFIG_DIR/config.conf" || sed -i '/^source=.*keybinds\.conf/a source=~/.config/mango/rules.conf' "$CONFIG_DIR/config.conf"
 # MANGO_STATE_DIR in env is new in 2026-10; an env kept from before needs it
 grep -q '^MANGO_STATE_DIR=' "$CONFIG_DIR/env" || printf '\nMANGO_STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/mango\n' >> "$CONFIG_DIR/env"
 

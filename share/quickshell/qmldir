@@ -36,6 +36,7 @@ MetricsPopup MetricsPopup.qml
 LauncherPopup LauncherPopup.qml
 QuickTile QuickTile.qml
 RadarView RadarView.qml
+RulesPane RulesPane.qml
 SettingsPopup SettingsPopup.qml
 KeybindsPane KeybindsPane.qml
 LayoutTweaks LayoutTweaks.qml

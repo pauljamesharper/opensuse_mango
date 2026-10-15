@@ -4,13 +4,12 @@ import Quickshell.Io
 
 // Settings panel (Super+/ opens it on Keybinds; Settings in the command
 // menu and the launcher): one centered card with the tabs down the left
-// — Keybinds, Layout, Bar, Wallpaper, Displays — and the tab's content
+// — Keybinds, Rules, Layout, Bar, Wallpaper, Displays — and the tab's content
 // on the right. This is where the setup is configured; the bar's
 // modules and their popups stay what they are (state and quick actions).
-// Apply at the foot of the tab strip lights once the Keybinds tab has
-// saved something mango isn't running yet; it reloads the config
-// (scripts/keybinds apply → mango-reload). Window rules live in
-// config.conf on mango, so there is no Rules tab here.
+// Apply at the foot of the tab strip lights once the Keybinds or Rules
+// tab has saved something mango isn't running yet; it reloads the
+// config (scripts/keybinds apply → mango-reload).
 // IPC: `settings toggle`, `settings open <tab>`; the retired popups'
 // names still answer: keybinds, layouts / tweaks, wallpapers, displays.
 Popout {
@@ -19,11 +18,11 @@ Popout {
     // Layout tab, keybinds the Keybinds tab, wallpapers the Wallpaper tab
     // (random and set go to the pane; it opens the panel for the
     // extraction if need be)
-    ipcNames: ["settings", "keybinds", "layouts", "tweaks", "wallpapers", "displays"]
+    ipcNames: ["settings", "keybinds", "rules", "layouts", "tweaks", "wallpapers", "displays"]
     function ipc(fn, arg, target) {
         if (target === "wallpapers" && fn === "random") { wallpaper.applyRandom(); return }
         if (target === "wallpapers" && fn === "set") { wallpaper.apply(arg); return }
-        const own = { keybinds: "keybinds", layouts: "layout", tweaks: "layout", wallpapers: "wallpaper", displays: "displays" }
+        const own = { keybinds: "keybinds", rules: "rules", layouts: "layout", tweaks: "layout", wallpapers: "wallpaper", displays: "displays" }
         if (target in own && fn === "toggle") {
             const i = tabs.findIndex(t => t.key === own[target])
             if (visible && tab === i) { visible = false; return }
@@ -43,12 +42,13 @@ Popout {
     property int tab: 0
     readonly property var tabs: [
         { key: "keybinds", label: "Keybinds", icon: "󰌌" },
+        { key: "rules",    label: "Rules",    icon: "󰖲" },
         { key: "layout",   label: "Layout",   icon: "󰕰" },
         { key: "bar",      label: "Bar",      icon: "󰍜" },
         { key: "wallpaper", label: "Wallpaper", icon: "󰸉" },
         { key: "displays", label: "Displays", icon: "󰍹" }
     ]
-    readonly property bool dirty: keybinds.dirty
+    readonly property bool dirty: keybinds.dirty || rules.dirty
     readonly property int stripWidth: 150
 
     centered: true
@@ -58,10 +58,12 @@ Popout {
     onVisibleChanged: {
         if (visible) {
             if (tab === 0) keybinds.shown()
-            if (tab === 3) wallpaper.shown()
-            if (tab === 4) displays.shown()
+            if (tab === 1) rules.shown()
+            if (tab === 4) wallpaper.shown()
+            if (tab === 5) displays.shown()
         } else {
             keybinds.hidden()
+            rules.hidden()
             wallpaper.hidden()
             displays.hidden()
         }
@@ -70,14 +72,16 @@ Popout {
         if (!visible)
             return
         keybinds.hidden()
+        rules.hidden()
         wallpaper.hidden()
         displays.hidden()
         if (tab === 0) keybinds.shown()
-        if (tab === 3) wallpaper.shown()
-        if (tab === 4) displays.shown()
+        if (tab === 1) rules.shown()
+        if (tab === 4) wallpaper.shown()
+        if (tab === 5) displays.shown()
     }
     // Apply: scripts/keybinds apply reloads mango's config
-    function apply() { keybinds.apply() }
+    function apply() { rules.apply(); keybinds.apply() }
 
     // --- tab strip ---
     Column {
@@ -189,8 +193,15 @@ Popout {
             visible: root.tab === 0
         }
 
-        Flickable {
+        RulesPane {
+            id: rules
+            popup: root
+            anchors.fill: parent
             visible: root.tab === 1
+        }
+
+        Flickable {
+            visible: root.tab === 2
             anchors.fill: parent
             contentHeight: layoutTweaks.implicitHeight
             clip: true
@@ -198,7 +209,7 @@ Popout {
         }
 
         Flickable {
-            visible: root.tab === 2
+            visible: root.tab === 3
             anchors.fill: parent
             contentHeight: barTweaks.implicitHeight
             clip: true
@@ -209,14 +220,14 @@ Popout {
             id: wallpaper
             popup: root
             anchors.fill: parent
-            visible: root.tab === 3
+            visible: root.tab === 4
         }
 
         DisplaysPane {
             id: displays
             popup: root
             anchors.fill: parent
-            visible: root.tab === 4
+            visible: root.tab === 5
         }
     }
 }

@@ -114,14 +114,17 @@ Three folders, by owner:
 
 | folder | what's there | on update |
 |---|---|---|
-| `~/.config/mango/` | **yours**: `config.conf` (four `source` lines), `autostart.conf` (what starts with the session), `keybinds.conf` (every binding), `local.conf` (your overrides, read last so they win), `env` (session environment), `wallpaper/` (add your own here) | never replaced; the five files follow the conffile rule above |
+| `~/.config/mango/` | **yours**: `config.conf` (five `source` lines), `autostart.conf` (what starts with the session), `keybinds.conf` (every binding), `rules.conf` (your window rules and scratchpads), `local.conf` (your overrides, read last so they win), `env` (session environment), `wallpaper/` (add your own here) | never replaced; the six files follow the conffile rule above |
 | `~/.local/share/mango/` | **the setup's**: `defaults.conf`, `quickshell*/`, `scripts/`, templates for rofi, dunst, kitty, swappy | replaced wholesale |
 | `~/.local/state/mango/` | **generated**: `theme.conf` (wallpaper + colours), `colors.ini`, `colors.rasi`, `kitty-theme.conf`, `dunstrc`, and the bar's settings (monitor layouts, gaps, effects, bar size, lock style, weather, launcher history) | untouched |
 
 Change a key in `keybinds.conf` — mango has no `unbind` and every matching
 bind fires, so a second `bind=` for the same keys in `local.conf` would
 run both. Add or drop a startup program in `autostart.conf`, for the same
-reason: an `exec-once` can't be cancelled from another file. (The
+reason: an `exec-once` can't be cancelled from another file. Window rules
+— which apps float, open on a tag, or are a scratchpad — go in
+`rules.conf`, or through the settings panel's Rules tab, which writes it
+(and the scratchpad's toggle key into `keybinds.conf`). (The
 wallpaper daemon and the wallpaper itself start from `defaults.conf` and
 `theme.conf` — they're the theming system.) Everything else goes in
 `local.conf`, which ships with
@@ -320,15 +323,16 @@ still shows you which window is live. The opacity slider needs mangowc
 
 ```
 ~/.config/mango/              yours
-├── config.conf               # four source lines: defaults, autostart, keybinds, local
+├── config.conf               # five source lines: defaults, autostart, keybinds, rules, local
 ├── autostart.conf            # what starts with the session — yours after install
 ├── keybinds.conf             # every binding — yours after install
+├── rules.conf                # window rules and scratchpads — yours after install
 ├── local.conf                # your overrides, read last
 ├── env                       # session environment, sourced at login by mango-session
 └── wallpaper/                # the shipped set plus your own
 
 ~/.local/share/mango/         the setup's — replaced on update
-├── defaults.conf             # look, input, layouts, wallpaper daemon, rules
+├── defaults.conf             # look, input, layouts, wallpaper daemon, the setup's own rules
 ├── quickshell/               # the bar (see its README)
 ├── quickshell-network/       # the network app (its own qs instance)
 ├── quickshell-lock/          # the lock screen (its own qs instance)
@@ -338,7 +342,8 @@ still shows you which window is live. The opacity slider needs mangowc
 │   ├── wallpaper-theme       # the theming engine
 │   ├── screenshot            # grim/slurp: full | region
 │   ├── changevolume          # volume + notifications
-│   ├── keybinds              # keybinds.conf's binds for the keybinds popup
+│   ├── keybinds              # keybinds.conf's binds for the Keybinds tab, and its editor
+│   ├── rules                 # rules.conf's rules for the Rules tab, and its editor
 │   ├── procs                 # /proc snapshot for the metrics card
 │   ├── sysinfo               # disks, disk activity and temperatures for it
 │   ├── displays              # wlr-randr for the Displays card: list | save | apply | forget
