@@ -7,6 +7,10 @@ import Quickshell.Services.Pipewire
 //   header — the output you're hearing, its level, a mute pill
 //   Output — volume slider; every audio output PipeWire knows, click one
 //     to make it the default (headphones vs speakers vs HDMI)
+//   Profile — a sound card's profile, when it has more than one: a card
+//     on "Analog Stereo Output" has no HDMI output to pick until it is on
+//     a HDMI profile (scripts/audio-profiles, pactl underneath; otherwise
+//     pavucontrol's Configuration tab)
 //   Input — only with a microphone: its level, a live meter (runs only
 //     while this is open), the microphones to pick from, a mute pill
 //   Apps — only while something plays: each app's own volume
@@ -43,6 +47,41 @@ Popout {
 
     // bound so their audio state (volume, mute) stays live while listed
     PwObjectTracker { objects: root.sinks.concat(root.sources, root.outStreams) }
+
+    // the cards' profiles, read when the popup opens and after a change
+    property var profiles: []   // {card, desc, profile, label, active}
+    readonly property var cards: {
+        const out = []
+        for (const p of profiles) {
+            let c = out.find(x => x.card === p.card)
+            if (!c) { c = { card: p.card, desc: p.desc, rows: [] }; out.push(c) }
+            c.rows.push(p)
+        }
+        return out.filter(c => c.rows.length > 1)
+    }
+    Process {
+        id: profilesRead
+        command: [Theme.shareDir + "/scripts/audio-profiles"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const out = []
+                for (const l of text.split("\n")) {
+                    const f = l.split("\t")
+                    if (f.length >= 5) out.push({ card: f[0], desc: f[1], profile: f[2], label: f[3], active: f[4] === "1" })
+                }
+                root.profiles = out
+            }
+        }
+    }
+    Process {
+        id: profileSet
+        onExited: profilesRead.running = true
+    }
+    function setProfile(card, profile) {
+        profileSet.command = [Theme.shareDir + "/scripts/audio-profiles", "set", card, profile]
+        profileSet.running = true
+    }
+    onVisibleChanged: if (visible) profilesRead.running = true
 
     readonly property var current: Pipewire.defaultAudioSink
     readonly property var audio: current?.audio ?? null
@@ -248,6 +287,61 @@ Popout {
             color: Qt.alpha(Theme.fg, 0.5)
             font.pixelSize: 12
             leftPadding: 10
+        }
+
+        // --- Profile: per card with a choice; the outputs above follow ---
+        Repeater {
+            model: root.cards
+            Column {
+                id: cardCol
+                required property var modelData
+                width: parent.width
+                spacing: 2
+                SectionLabel { text: root.cards.length > 1 ? "Profile · " + cardCol.modelData.desc : "Profile" }
+                Repeater {
+                    model: cardCol.modelData.rows
+                    Rectangle {
+                        id: prof
+                        required property var modelData
+                        width: parent.width
+                        height: 28
+                        radius: 8
+                        color: modelData.active ? Qt.alpha(Theme.accent, 0.18)
+                             : profMa.containsMouse ? Qt.alpha(Theme.fg, 0.12) : "transparent"
+                        Behavior on color { ColorAnimation { duration: 120 } }
+                        Txt {
+                            id: profGlyph
+                            anchors.left: parent.left
+                            anchors.leftMargin: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 16
+                            horizontalAlignment: Text.AlignHCenter
+                            text: prof.modelData.active ? "󰄬" : "󰋋"
+                            color: prof.modelData.active ? Theme.accent : Theme.cyan
+                            font.pixelSize: 13
+                        }
+                        Txt {
+                            anchors.left: profGlyph.right
+                            anchors.leftMargin: 10
+                            anchors.right: parent.right
+                            anchors.rightMargin: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: prof.modelData.label
+                            elide: Text.ElideRight
+                            color: prof.modelData.active ? Theme.fg : Qt.alpha(Theme.fg, 0.9)
+                            font.pixelSize: 12
+                            font.bold: prof.modelData.active
+                        }
+                        MouseArea {
+                            id: profMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.setProfile(prof.modelData.card, prof.modelData.profile)
+                        }
+                    }
+                }
+            }
         }
 
         // --- Input: only with a microphone ---
