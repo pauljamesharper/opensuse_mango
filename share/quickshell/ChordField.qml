@@ -3,10 +3,10 @@ import Quickshell
 
 // A key chord to edit: the text ("super+shift+b"), a Record button that
 // takes the next chord from the keyboard, and the chord as keycaps.
-// Recording: dwm lets go of its key grabs (Wm.setKeyGrab) so Super+j
-// arrives here instead of moving focus; they come back when recording
-// stops. A bare Escape stops without recording (Escape with modifiers
-// records). Shared by the keybinds and rules editors.
+// Recording: the next chord typed lands in the field. A bare Escape
+// stops without recording (Escape with modifiers records). Mango keeps
+// its own binds while recording, so a chord that is already bound acts
+// instead of arriving; type that one in the field.
 Row {
     id: root
     property alias text: field.text
@@ -24,9 +24,8 @@ Row {
         const key = parts.pop()
         return [parts.length ? parts.join("+").toLowerCase() : "none", key]
     }
-    // dwm releases its key grabs for the recording (Wm.setKeyGrab); a
-    // compositor keeps its binds, so under mango a chord that is already
-    // bound acts instead of arriving — type it in the field then
+    // Wm.setKeyGrab exists only on setups whose WM can let go of its
+    // grabs (dwm); mango has none, so the guard skips it.
     function start() {
         recording = true
         if (typeof Wm.setKeyGrab === "function") Wm.setKeyGrab(false)

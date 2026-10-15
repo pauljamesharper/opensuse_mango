@@ -4,13 +4,13 @@ import Quickshell.Io
 
 // Keybinds tab of the settings panel (SettingsPopup): every bind in the
 // WM config, grouped by its sections and laid out in columns. Type to
-// filter; the chips narrow it to launchers (run=) or dwm's own actions
-// (do=). Click a row to edit it in the panel below: record a chord (dwm
+// filter; the chips narrow it to launchers (run=) or mango's own actions
+// (do=). Click a row to edit it in the panel below: record a chord (mango
 // lets go of its grabs meanwhile), change the label and what it does,
 // Save; "+" on a section adds a bind; right-click a row to open the file
 // at that line instead. Every write goes through the generator first,
 // so a bad bind is refused with its reason and the file stays as it
-// was. Saves pile up until the panel's Apply rebuilds and restarts dwm
+// was. Saves pile up until the panel's Apply reloads mango
 // with them. Rows come from scripts/keybinds, re-read after every
 // change. Nothing here is WM-specific: each setup's scripts/keybinds
 // reads its own config format and answers the same verbs (rows, get,
@@ -19,7 +19,7 @@ Item {
     id: root
     required property var popup     // the SettingsPopup: closed around apply
     property int kindFilter: 0      // 0 all, 1 run, 2 do
-    readonly property var kinds: ["All", "Apps", "dwm"]
+    readonly property var kinds: ["All", "Apps", "mango"]
     // sections folded to their header (click a header); on a screen where
     // the whole list doesn't fit, every section starts folded so all the
     // headers show at once. A search looks through folded sections too.
@@ -49,7 +49,7 @@ Item {
     // the bind in the panel: {line, section, isNew}; the fields hold the rest
     property var editing: null
     property string editKind: "run"
-    property bool dirty: false        // saved binds dwm isn't running yet
+    property bool dirty: false        // saved binds mango isn't running yet
     property string status: ""
     property bool statusBad: false
     readonly property string tool: Theme.shareDir + "/scripts/keybinds"
@@ -147,7 +147,7 @@ Item {
             }
             dirty = true
             editing = null
-            setStatus("saved · Apply rebuilds dwm with it", false)
+            setStatus("saved · Apply reloads mango with it", false)
             loader.running = true
             Qt.callLater(() => search.forceActiveFocus())
         })
@@ -159,7 +159,7 @@ Item {
             if (rc !== 0) { setStatus(out.trim(), true); return }
             dirty = true
             editing = null
-            setStatus("removed · Apply rebuilds dwm without it", false)
+            setStatus("removed · Apply reloads mango without it", false)
             loader.running = true
         })
     }
@@ -321,7 +321,7 @@ Item {
                     root.scrollBy((event.key === Qt.Key_PageUp ? -1 : 1) * body.height * 0.9)
                     event.accepted = true
                 } else if (ctrl && (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab)) {
-                    // Ctrl+Tab cycles All · Apps · dwm, as the launcher's chips do
+                    // Ctrl+Tab cycles All · Apps · mango, as the launcher's chips do
                     const n = root.kinds.length
                     root.kindFilter = (root.kindFilter + (event.key === Qt.Key_Backtab ? n - 1 : 1)) % n
                     event.accepted = true
@@ -337,7 +337,7 @@ Item {
             }
         }
 
-        // All · Apps · dwm: launchers (run=) or dwm's own actions (do=)
+        // All · Apps · mango: launchers (run=) or mango's own actions (do=)
         Row {
             id: kindChips
             anchors.right: hint.left
@@ -458,7 +458,7 @@ Item {
                     spacing: 4
                     anchors.verticalCenter: parent.verticalCenter
                     Repeater {
-                        model: [["run", "run a command"], ["do", "dwm action"]]
+                        model: [["run", "run a command"], ["do", "mango action"]]
                         Rectangle {
                             required property var modelData
                             readonly property bool on: root.editKind === modelData[0]

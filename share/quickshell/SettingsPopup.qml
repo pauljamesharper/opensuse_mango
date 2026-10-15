@@ -132,7 +132,7 @@ Popout {
         }
     }
 
-    // saved changes dwm isn't running yet: one click rebuilds it
+    // saved changes mango isn't running yet: one click reloads it
     Rectangle {
         id: applyBtn
         visible: root.dirty
