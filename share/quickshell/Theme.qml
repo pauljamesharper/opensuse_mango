@@ -146,41 +146,51 @@ Singleton {
         }
     }
 
-    // the right cluster's modules, in order, each shown or hidden: the
-    // Bar tab's Modules list. bar-modules holds one key per line, a
-    // leading "-" for hidden; no file = the default order, all shown.
-    // Keys missing from the file (a module added later) are appended.
+    // the bar's modules: which zone each sits in (left, center, right),
+    // in what order, shown or hidden — the Bar tab's Modules lists.
+    // bar-modules holds one "zone key" per line, a "-" before the key
+    // for hidden (a bare key is the right zone: the file's first form);
+    // no file = the default below. Keys missing from the file (a module
+    // added later) are appended to their default zone. The launcher
+    // (first, left) and the command menu (last, right) are fixed: they
+    // host the launcher, settings, power and notification popups.
     readonly property var moduleDefs: [
-        { key: "media",      label: "Now playing" },
-        { key: "weather",    label: "Weather" },
-        { key: "metrics",    label: "CPU · RAM · disk" },
-        { key: "volume",     label: "Volume" },
-        { key: "network",    label: "Network" },
-        { key: "updates",    label: "Updates" },
-        { key: "tray",       label: "Tray" },
-        { key: "bell",       label: "Notifications" },
-        { key: "clock",      label: "Clock" },
-        { key: "micmute",    label: "Mic mute" },
-        { key: "capslock",   label: "Caps lock" },
-        { key: "screenshot", label: "Screenshot" }
+        { key: "tags",       label: "Tags",           zone: "left" },
+        { key: "layout",     label: "Layout button",  zone: "left" },
+        { key: "title",      label: "Window title",   zone: "center" },
+        { key: "media",      label: "Now playing",    zone: "right" },
+        { key: "weather",    label: "Weather",        zone: "right" },
+        { key: "metrics",    label: "CPU · RAM · disk", zone: "right" },
+        { key: "volume",     label: "Volume",         zone: "right" },
+        { key: "network",    label: "Network",        zone: "right" },
+        { key: "updates",    label: "Updates",        zone: "right" },
+        { key: "tray",       label: "Tray",           zone: "right" },
+        { key: "bell",       label: "Notifications",  zone: "right" },
+        { key: "clock",      label: "Clock",          zone: "right" },
+        { key: "micmute",    label: "Mic mute",       zone: "right" },
+        { key: "capslock",   label: "Caps lock",      zone: "right" },
+        { key: "screenshot", label: "Screenshot",     zone: "right" }
     ]
-    // (the command menu is not in the list: it hosts the settings panel,
-    // the power menu and the notification popups, so it stays, and last)
-    property var modules: moduleDefs.map(d => ({ key: d.key, on: true }))
+    readonly property var zones: ["left", "center", "right"]
+    function defaultModules() { return moduleDefs.map(d => ({ key: d.key, zone: d.zone, on: true })) }
+    property var modules: defaultModules()
     function parseModules(t) {
         const out = []
         for (let l of t.split("\n")) {
             l = l.trim(); if (l === "") continue
-            const on = l[0] !== "-"; const key = on ? l : l.slice(1)
-            if (moduleDefs.find(d => d.key === key) && !out.find(m => m.key === key)) out.push({ key: key, on: on })
+            const parts = l.split(/\s+/)
+            let zone = "right", key = parts[0]
+            if (parts.length > 1 && zones.indexOf(parts[0]) >= 0) { zone = parts[0]; key = parts[1] }
+            const on = key[0] !== "-"; if (!on) key = key.slice(1)
+            if (moduleDefs.find(d => d.key === key) && !out.find(m => m.key === key)) out.push({ key: key, zone: zone, on: on })
         }
-        for (const d of moduleDefs) if (!out.find(m => m.key === d.key)) out.push({ key: d.key, on: true })
+        for (const d of moduleDefs) if (!out.find(m => m.key === d.key)) out.push({ key: d.key, zone: d.zone, on: true })
         return out
     }
     function setModules(list) {
         modules = list
         Quickshell.execDetached(["sh", "-c",
-            "printf '%s\\n' " + list.map(m => (m.on ? "" : "-") + m.key).join(" ") + " > '" + root.stateDir + "/bar-modules'"])
+            "printf '%s\\n' " + list.map(m => "'" + m.zone + " " + (m.on ? "" : "-") + m.key + "'").join(" ") + " > '" + root.configDir + "/bar-modules'"])
     }
     FileView {
         path: root.stateDir + "/bar-modules"
@@ -188,7 +198,7 @@ Singleton {
         onFileChanged: reload()
         onLoaded: root.modules = root.parseModules(text())
         // the file deleted = back to the default
-        onLoadFailed: root.modules = root.moduleDefs.map(d => ({ key: d.key, on: true }))
+        onLoadFailed: root.modules = root.defaultModules()
     }
 
     // not part of barStateReady: popups aren't open at start

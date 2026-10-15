@@ -1,7 +1,8 @@
 import QtQuick
 
 // A text field of the settings panel's editors: Enter accepts, Escape
-// leaves the editor (the pane decides what each means).
+// leaves the editor (the pane decides what each means), Tab moves to
+// the next field (Qt's focus chain: the editor's fields in order).
 Rectangle {
     id: field
     signal accepted()
@@ -16,6 +17,7 @@ Rectangle {
         border.color: ti.activeFocus ? Qt.alpha(Theme.accent, 0.5) : "transparent"
         TextInput {
             id: ti
+            activeFocusOnTab: true
             anchors.fill: parent
             anchors.leftMargin: 10
             anchors.rightMargin: 10

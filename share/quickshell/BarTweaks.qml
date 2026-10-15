@@ -61,73 +61,121 @@ Column {
 
         SectionLabel { text: "Modules" }
         Txt {
-            text: "the right side of the bar, left to right · switch one off to hide it · the command menu stays last"
+            width: parent.width
+            wrapMode: Text.Wrap
+            text: "three zones, each left to right · a switch hides a module, L C R moves it to another zone, the arrows reorder it · the launcher stays first and the command menu last"
             color: Qt.alpha(Theme.fg, 0.5)
             bottomPadding: 4
         }
-        function move(i, d) {
+        // moves swap within the zone; a zone change appends to the new zone
+        function move(key, d) {
             const l = Theme.modules.slice()
-            const j = i + d
+            const i = l.findIndex(m => m.key === key)
+            if (i < 0) return
+            let j = i + d
+            while (j >= 0 && j < l.length && l[j].zone !== l[i].zone) j += d
             if (j < 0 || j >= l.length) return
             const t = l[i]; l[i] = l[j]; l[j] = t
             Theme.setModules(l)
         }
-        function flip(i) {
+        function flip(key) {
             const l = Theme.modules.slice()
-            l[i] = { key: l[i].key, on: !l[i].on }
+            const i = l.findIndex(m => m.key === key)
+            if (i >= 0) { l[i] = { key: l[i].key, zone: l[i].zone, on: !l[i].on }; Theme.setModules(l) }
+        }
+        function rezone(key, zone) {
+            const l = Theme.modules.filter(m => m.key !== key)
+            const m = Theme.modules.find(m => m.key === key)
+            if (!m || m.zone === zone) return
+            l.push({ key: key, zone: zone, on: m.on })
             Theme.setModules(l)
         }
-        Column {
-            width: parent.width
-            spacing: 2
-            Repeater {
-                model: Theme.modules
-                Rectangle {
-                    id: modRow
-                    required property var modelData
-                    required property int index
-                    readonly property var def: Theme.moduleDefs.find(d => d.key === modelData.key)
-                    width: parent.width
-                    height: 30
-                    radius: 6
-                    color: rowMa.containsMouse ? Qt.alpha(Theme.fg, 0.06) : "transparent"
-                    MouseArea { id: rowMa; anchors.fill: parent; hoverEnabled: true; onClicked: root.flip(modRow.index) }
-                    Toggle {
-                        id: modToggle
-                        anchors.left: parent.left
-                        anchors.leftMargin: 6
-                        anchors.verticalCenter: parent.verticalCenter
-                        on: modRow.modelData.on
-                        onToggled: root.flip(modRow.index)
-                    }
-                    Txt {
-                        anchors.left: modToggle.right
-                        anchors.leftMargin: 10
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: modRow.def ? modRow.def.label : modRow.modelData.key
-                        color: modRow.modelData.on ? Theme.fg : Qt.alpha(Theme.fg, 0.45)
-                    }
-                    Row {
-                        anchors.right: parent.right
-                        anchors.rightMargin: 4
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 2
-                        Repeater {
-                            model: [["󰅃", -1], ["󰅀", 1]]
-                            Rectangle {
-                                required property var modelData
-                                readonly property bool can: modelData[1] < 0 ? modRow.index > 0 : modRow.index < Theme.modules.length - 1
-                                width: 26; height: 24; radius: 6
-                                color: arrowMa.containsMouse && can ? Qt.alpha(Theme.fg, 0.14) : "transparent"
-                                opacity: can ? 1 : 0.25
-                                Txt { anchors.centerIn: parent; text: parent.modelData[0]; color: Theme.accent; font.pixelSize: 14 }
-                                MouseArea {
-                                    id: arrowMa
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    enabled: parent.can
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.move(modRow.index, parent.modelData[1])
+        function inZone(zone) { return Theme.modules.filter(m => m.zone === zone) }
+        Repeater {
+            model: Theme.zones
+            Column {
+                id: zoneCol
+                required property string modelData
+                readonly property var members: root.inZone(modelData)
+                width: parent.width
+                spacing: 2
+                Txt {
+                    leftPadding: 6
+                    topPadding: 6
+                    text: zoneCol.modelData
+                    color: Theme.accent
+                    font.bold: true
+                    font.capitalization: Font.AllUppercase
+                    font.letterSpacing: 1
+                }
+                Txt {
+                    visible: zoneCol.members.length === 0
+                    leftPadding: 6
+                    text: "nothing here"
+                    color: Qt.alpha(Theme.fg, 0.35)
+                }
+                Repeater {
+                    model: zoneCol.members
+                    Rectangle {
+                        id: modRow
+                        required property var modelData
+                        required property int index
+                        readonly property var def: Theme.moduleDefs.find(d => d.key === modelData.key)
+                        width: parent.width
+                        height: 30
+                        radius: 6
+                        color: rowMa.containsMouse ? Qt.alpha(Theme.fg, 0.06) : "transparent"
+                        MouseArea { id: rowMa; anchors.fill: parent; hoverEnabled: true; onClicked: root.flip(modRow.modelData.key) }
+                        Toggle {
+                            id: modToggle
+                            anchors.left: parent.left
+                            anchors.leftMargin: 6
+                            anchors.verticalCenter: parent.verticalCenter
+                            on: modRow.modelData.on
+                            onToggled: root.flip(modRow.modelData.key)
+                        }
+                        Txt {
+                            anchors.left: modToggle.right
+                            anchors.leftMargin: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: modRow.def ? modRow.def.label : modRow.modelData.key
+                            color: modRow.modelData.on ? Theme.fg : Qt.alpha(Theme.fg, 0.45)
+                        }
+                        Row {
+                            anchors.right: parent.right
+                            anchors.rightMargin: 4
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 2
+                            // the zone: L C R
+                            Repeater {
+                                model: Theme.zones
+                                Rectangle {
+                                    required property string modelData
+                                    readonly property bool here: modRow.modelData.zone === modelData
+                                    width: 22; height: 22; radius: 6
+                                    color: here ? Qt.alpha(Theme.accent, 0.25) : zoneMa.containsMouse ? Qt.alpha(Theme.fg, 0.14) : "transparent"
+                                    Txt { anchors.centerIn: parent; text: parent.modelData[0].toUpperCase(); color: parent.here ? Theme.accent : Qt.alpha(Theme.fg, 0.5); font.pixelSize: 10; font.bold: parent.here }
+                                    MouseArea { id: zoneMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.rezone(modRow.modelData.key, parent.modelData) }
+                                }
+                            }
+                            Item { width: 6; height: 1 }
+                            Repeater {
+                                model: [["󰅃", -1], ["󰅀", 1]]
+                                Rectangle {
+                                    required property var modelData
+                                    readonly property bool can: modelData[1] < 0 ? modRow.index > 0 : modRow.index < zoneCol.members.length - 1
+                                    width: 26; height: 24; radius: 6
+                                    color: arrowMa.containsMouse && can ? Qt.alpha(Theme.fg, 0.14) : "transparent"
+                                    opacity: can ? 1 : 0.25
+                                    Txt { anchors.centerIn: parent; text: parent.modelData[0]; color: Theme.accent; font.pixelSize: 14 }
+                                    MouseArea {
+                                        id: arrowMa
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        enabled: parent.can
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.move(modRow.modelData.key, parent.modelData[1])
+                                    }
                                 }
                             }
                         }
@@ -136,10 +184,10 @@ Column {
             }
         }
         Txt {
-            text: "reset to the default order"
+            text: "reset to the default layout"
             color: Theme.accent
             font.pixelSize: 11
             topPadding: 4
-            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Theme.setModules(Theme.moduleDefs.map(d => ({ key: d.key, on: true }))) }
+            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Theme.setModules(Theme.defaultModules()) }
         }
 }
