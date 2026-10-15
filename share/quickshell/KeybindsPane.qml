@@ -317,7 +317,7 @@ Item {
             Keys.onDownPressed: root.scrollBy(60)
             Keys.onPressed: event => {
                 const ctrl = event.modifiers & Qt.ControlModifier
-                if (event.key === Qt.Key_PageUp || event.key === Qt.Key_PageDown) {
+                if (!ctrl && (event.key === Qt.Key_PageUp || event.key === Qt.Key_PageDown)) {
                     root.scrollBy((event.key === Qt.Key_PageUp ? -1 : 1) * body.height * 0.9)
                     event.accepted = true
                 } else if (ctrl && (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab)) {

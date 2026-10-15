@@ -68,7 +68,16 @@ Popout {
             displays.hidden()
         }
     }
+    // Ctrl+PageDown / Ctrl+PageUp walk the tabs (Ctrl+Tab is the
+    // Keybinds tab's chips); the arriving tab gets the keyboard
+    onKeyPressed: event => {
+        if (!(event.modifiers & Qt.ControlModifier)) return
+        if (event.key !== Qt.Key_PageDown && event.key !== Qt.Key_PageUp) return
+        tab = (tab + (event.key === Qt.Key_PageDown ? 1 : tabs.length - 1)) % tabs.length
+        event.accepted = true
+    }
     onTabChanged: {
+        takeFocus()
         if (!visible)
             return
         keybinds.hidden()
