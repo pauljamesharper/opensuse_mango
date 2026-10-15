@@ -146,6 +146,51 @@ Singleton {
         }
     }
 
+    // the right cluster's modules, in order, each shown or hidden: the
+    // Bar tab's Modules list. bar-modules holds one key per line, a
+    // leading "-" for hidden; no file = the default order, all shown.
+    // Keys missing from the file (a module added later) are appended.
+    readonly property var moduleDefs: [
+        { key: "media",      label: "Now playing" },
+        { key: "weather",    label: "Weather" },
+        { key: "metrics",    label: "CPU · RAM · disk" },
+        { key: "volume",     label: "Volume" },
+        { key: "network",    label: "Network" },
+        { key: "updates",    label: "Updates" },
+        { key: "tray",       label: "Tray" },
+        { key: "bell",       label: "Notifications" },
+        { key: "clock",      label: "Clock" },
+        { key: "micmute",    label: "Mic mute" },
+        { key: "capslock",   label: "Caps lock" },
+        { key: "screenshot", label: "Screenshot" }
+    ]
+    // (the command menu is not in the list: it hosts the settings panel,
+    // the power menu and the notification popups, so it stays, and last)
+    property var modules: moduleDefs.map(d => ({ key: d.key, on: true }))
+    function parseModules(t) {
+        const out = []
+        for (let l of t.split("\n")) {
+            l = l.trim(); if (l === "") continue
+            const on = l[0] !== "-"; const key = on ? l : l.slice(1)
+            if (moduleDefs.find(d => d.key === key) && !out.find(m => m.key === key)) out.push({ key: key, on: on })
+        }
+        for (const d of moduleDefs) if (!out.find(m => m.key === d.key)) out.push({ key: d.key, on: true })
+        return out
+    }
+    function setModules(list) {
+        modules = list
+        Quickshell.execDetached(["sh", "-c",
+            "printf '%s\\n' " + list.map(m => (m.on ? "" : "-") + m.key).join(" ") + " > '" + root.stateDir + "/bar-modules'"])
+    }
+    FileView {
+        path: root.stateDir + "/bar-modules"
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: root.modules = root.parseModules(text())
+        // the file deleted = back to the default
+        onLoadFailed: root.modules = root.moduleDefs.map(d => ({ key: d.key, on: true }))
+    }
+
     // not part of barStateReady: popups aren't open at start
     // the Tags strip shows which apps sit on each tag (layout picker toggle)
     property bool tagIcons: false
