@@ -65,7 +65,7 @@ PanelWindow {
         MouseArea {
             anchors.fill: parent
             acceptedButtons: Qt.RightButton
-            onClicked: layoutBtn.pickerVisible = !layoutBtn.pickerVisible
+            onClicked: BarIpc.call("settings", "open", "layout")
         }
 
         Row {

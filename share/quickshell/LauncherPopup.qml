@@ -49,11 +49,13 @@ Popout {
         action("power", "Power menu", "󰐥", "shut down reboot restart log out logout power off",
                () => openPopup("power")),
         action("keybinds", "Keybindings", "󰌌", "keys shortcuts hotkeys help cheatsheet",
-               () => openPopup("keybinds")),
+               () => ipcCall("settings", "open", "keybinds")),
         action("wallpaper", "Wallpaper", "󰋩", "background theme colors colours",
-               () => openPopup("wallpapers")),
+               () => ipcCall("settings", "open", "wallpaper")),
         action("layout", "Layout & tweaks", "󰕰", "tiling gaps borders blur shadows animations opacity bar height scale effects",
-               () => openPopup("layouts")),
+               () => ipcCall("settings", "open", "layout")),
+        action("settings", "Settings", "󰒓", "configure preferences bar height scale tweaks",
+               () => ipcCall("settings", "toggle")),
         action("commands", "Command menu", "󰘳", "quick settings night light keep awake caffeine dnd do not disturb pomodoro timer brightness power profile",
                () => openPopup("commands")),
         action("metrics", "What's running", "󰍛", "task manager processes cpu memory ram kill btop system monitor",
@@ -65,7 +67,7 @@ Popout {
         action("share-wifi", "Share Wi-Fi", "󰐲", "qr code password guest phone join wifi wi-fi",
                () => run(["scripts/network", "share"])),
         action("displays", "Displays", "󰍹", "monitor screen output resolution scale rotate refresh rate arrange mirror vrr",
-               () => openPopup("displays")),
+               () => ipcCall("settings", "open", "displays")),
         action("lock", "Lock screen", "󰌾", "lock password away afk matrix",
                () => run(["scripts/lock"])),
         action("screen-off", "Screen off", "󰌢", "monitor display blank",
@@ -184,9 +186,10 @@ Popout {
                        Math.min(Math.max(a.hslLightness, 0.52), 0.66), 1)
     }
 
-    function openPopup(target) {
-        Quickshell.execDetached(["qs", "-p", Theme.shareDir + "/quickshell",
-                                 "ipc", "call", target, "toggle"])
+    function openPopup(target) { ipcCall(target, "toggle") }
+    function ipcCall(target, fn, arg) {
+        const cmd = ["qs", "-p", Theme.shareDir + "/quickshell", "ipc", "call", target, fn]
+        Quickshell.execDetached(arg !== undefined ? cmd.concat([arg]) : cmd)
     }
 
     // a script from the config folder: ["scripts/bar", "restart"]

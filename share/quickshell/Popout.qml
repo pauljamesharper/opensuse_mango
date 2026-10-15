@@ -53,7 +53,7 @@ PanelWindow {
         enabled: root.ipcNames.length > 0
         function onCall(target, fn, arg) {
             if (root.ipcNames.indexOf(target) >= 0 && root.onFocusedOutput)
-                root.ipc(fn, arg)
+                root.ipc(fn, arg, target)
         }
     }
 

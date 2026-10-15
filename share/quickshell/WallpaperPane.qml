@@ -2,23 +2,17 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Wallpaper picker popup: a thumbnail grid of the config folder's wallpaper/.
+// Wallpaper tab of the settings panel: a thumbnail grid of the config
+// folder's wallpaper/. `wallpapers random` / `set <path>` over IPC work
+// with the panel closed: it opens on this tab for the extraction (the
+// canvas renders only inside a visible window).
 // Picking one extracts a palette from the image right here (hidden Image →
 // Canvas histogram → HSL-derived semantic colors) and hands wallpaper +
 // palette to scripts/wallpaper-theme, which re-themes the whole desktop.
 // No pywal/wallust needed — quickshell is the color engine.
-Popout {
+Item {
     id: root
-
-    cardWidth: 176 * 3 + 2 * cardPadding
-    cardHeight: 4 * 103 + folderRow.height + 4 + 2 * cardPadding
-
-    ipcNames: ["wallpapers"]
-    function ipc(fn, arg) {
-        if (fn === "toggle") root.toggle()
-        else if (fn === "random") root.applyRandom()
-        else if (fn === "set") root.apply(arg)
-    }
+    required property var popup
 
     property var wallpapers: []
     property string applyingPath: ""
@@ -26,20 +20,17 @@ Popout {
 
     // re-scan the wallpaper dir on every open, so new files just show up;
     // the grid takes key focus so arrows/Enter work without the mouse
-    onVisibleChanged: {
-        if (visible) {
-            lister.running = true
-            grid.forceActiveFocus()
-        }
+    function shown() {
+        lister.running = true
+        grid.forceActiveFocus()
     }
-
-    function toggle() { visible = !visible }
+    function hidden() {}
 
     // the folder the grid scans — open it in the file manager so new
     // images can be dropped in; they appear on the picker's next open
     function openFolder() {
         Quickshell.execDetached(["xdg-open", Theme.confDir + "/wallpaper"])
-        visible = false
+        popup.visible = false
     }
 
     function applyRandom() {
@@ -49,8 +40,8 @@ Popout {
 
     function apply(path) {
         applyingPath = path
-        if (!visible)
-            visible = true // canvas only renders inside a visible window
+        if (!popup.visible || !visible)
+            popup.ipc("open", "wallpaper") // canvas only renders inside a visible window
         canvas.loadImage("file://" + path)
     }
 
@@ -202,7 +193,7 @@ Popout {
                     root.openFolder()
                     break
                 case Qt.Key_Escape:
-                    root.visible = false
+                    popup.visible = false
                     break
                 default:
                     event.accepted = false
@@ -497,6 +488,6 @@ Popout {
             [Theme.shareDir + "/scripts/wallpaper-theme", root.applyingPath]
                 .concat(palette).concat(ansi))
         root.applyingPath = ""
-        root.visible = false
+        popup.visible = false
     }
 }

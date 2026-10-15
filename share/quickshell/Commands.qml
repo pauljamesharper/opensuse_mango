@@ -231,17 +231,13 @@ BarModule {
         anchorItem: root
     }
 
-    // Super+/ and the Keybindings row below
-    KeybindsPopup {
-        id: keybinds
+    // Super+/ opens it on Keybinds; the Displays, Keybindings and Settings rows below
+    SettingsPopup {
+        id: settings
         anchorItem: root
     }
 
     // Super+x (scripts/power) and the Power menu row below
-    DisplaysPopup {
-        id: displays
-        anchorItem: root
-    }
     PowerPopup {
         id: power
         anchorItem: root
@@ -457,9 +453,11 @@ BarModule {
                       run: () => Quickshell.execDetached(["kitty", "-e",
                           Theme.shareDir + "/scripts/setup-update"]) },
                     { icon: "󰍹", label: "Displays",
-                      run: () => displays.visible = true },
+                      run: () => settings.ipc("open", "displays") },
                     { icon: "󰌌", label: "Keybindings",
-                      run: () => keybinds.visible = true },
+                      run: () => settings.ipc("open", "keybinds") },
+                    { icon: "󰒓", label: "Settings",
+                      run: () => settings.ipc("open", "layout") },
                     { icon: "󰑓", label: "Restart bar",
                       run: () => Quickshell.execDetached([Theme.shareDir + "/scripts/bar", "restart"]) },
                     { icon: "󰐥", label: "Power menu",

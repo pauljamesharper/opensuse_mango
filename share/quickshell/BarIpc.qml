@@ -21,6 +21,11 @@ Singleton {
     IpcHandler { target: "metrics";    function toggle(): void { root.call("metrics", "toggle", "") } }
     IpcHandler { target: "launcher";   function toggle(): void { root.call("launcher", "toggle", "") } }
     IpcHandler { target: "keybinds";   function toggle(): void { root.call("keybinds", "toggle", "") } }
+    IpcHandler {
+        target: "settings"
+        function toggle(): void { root.call("settings", "toggle", "") }
+        function open(tab: string): void { root.call("settings", "open", tab) }
+    }
     IpcHandler { target: "power";      function toggle(): void { root.call("power", "toggle", "") } }
     IpcHandler {
         target: "weather"

@@ -1,36 +1,20 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
 
-// Layout + tweaks popup anchored under the layout button (right-click
-// on empty bar opens it too — this is the port's one tweaks surface).
-// Top: all fourteen mango layouts as glyph tiles; click applies via
-// `mmsg dispatch setlayout`, panel stays open for experimenting.
-// Middle: live tweaks — inner window gap (setoption, persisted to the
-// mango-gaps state file Wm.qml re-applies on start), border width,
-// master width and count (relative dispatches; tracked in Wm.qml, dimmed
-// in layouts that ignore them), then blur / shadows / animations toggles
-// and the unfocused-opacity slider (setoption, persisted to
-// mango-effects). Bottom: bar height/scale, persisted to the state files
-// Theme.qml watches.
-Popout {
+// The layout grid and the live tweaks (gap, border, master width and
+// count, effects), as a column for the settings panel's Layout tab. The
+// grid shows the layout of the output the panel is on; a tile applies
+// there (mmsg dispatch setlayout). Gap and effects persist to the
+// mango-gaps / mango-effects state files Wm.qml re-applies on start.
+Column {
     id: root
-    ipcNames: ["layouts", "tweaks"]
-    readonly property string mon: screen ? screen.name : ""
-
-    cardWidth: 340
-    cardHeight: col.implicitHeight + 2 * cardPadding
-
+    required property var popup
+    readonly property string mon: popup.screen ? popup.screen.name : ""
+    spacing: 6
     function persistFile(name, v) {
         Quickshell.execDetached(["sh", "-c",
             "printf '%s\\n' " + v + " > '" + Theme.stateDir + "/" + name + "'"])
     }
-
-    Column {
-        id: col
-        anchors.left: parent.left
-        anchors.right: parent.right
-        spacing: 6
 
         SectionLabel { text: "Layout" }
 
@@ -159,51 +143,4 @@ Popout {
             persistFn: v => Wm.persistEffects()
         }
 
-        SectionLabel { text: "Bar" }
-
-        Grid {
-            id: barGrid
-            width: parent.width
-            columns: 3
-            spacing: 4
-
-            Repeater {
-                model: [
-                    { icon: "󱂬", label: "Tag icons", active: Theme.tagIcons,
-                      run: () => {
-                          Theme.tagIcons = !Theme.tagIcons
-                          root.persistFile("tag-icons", Theme.tagIcons ? 1 : 0)
-                      } }
-                ]
-                TogglePill { width: (barGrid.width - 8) / 3 }
-            }
-        }
-        TweakSlider {
-            label: "bar height"
-            from: 36; to: 72
-            value: Theme.barHeight
-            suffix: " px"
-            applyFn: v => Theme.barHeight = v
-            persistFn: v => root.persistFile("bar-height", v)
-        }
-        TweakSlider {
-            label: "element scale"
-            from: 0.7; to: 2.0
-            value: Theme.barUserScale
-            isInt: false
-            suffix: "×"
-            applyFn: v => Theme.barUserScale = v
-            persistFn: v => root.persistFile("bar-scale", v)
-        }
-        TweakSlider {
-            label: "popup size"
-            from: 0.8; to: 2.0
-            value: Theme.popupUserScale
-            isInt: false
-            suffix: "×"
-            live: false
-            applyFn: v => Theme.popupUserScale = v
-            persistFn: v => root.persistFile("popup-scale", v)
-        }
-    }
 }

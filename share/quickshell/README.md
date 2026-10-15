@@ -17,7 +17,17 @@ icon theme in as `QS_ICON_THEME` (quickshell doesn't follow it itself).
   `mmsg dispatch`. `scripts/mango-ipc` wraps mmsg and finds the socket
   when MANGO_INSTANCE_SIGNATURE is missing from the environment.
 - `Bar.qml` — no Follow module (mango has no window-follow toggle).
-- `LayoutPicker.qml` — the fourteen mango layouts as glyph tiles
+- `SettingsPopup.qml` — the settings panel: one centered card, tabs down
+  the left (Keybinds, Layout, Bar, Wallpaper, Displays), Apply at the foot
+  of the strip. `KeybindsPane.qml` edits keybinds.conf through
+  `scripts/keybinds` (get / set / add / delete / check / apply);
+  `LayoutTweaks.qml` (the fourteen mango layouts as glyph tiles, the live
+  tweaks and effects), `BarTweaks.qml`, `WallpaperPane.qml` and
+  `DisplaysPane.qml` are the other tabs; `EditField.qml`, `EditButton.qml`
+  and `ChordField.qml` are the editor's widgets. Shared with dwm-setup.
+  IPC: `settings toggle`, `settings open <tab>`; `keybinds`, `layouts` /
+  `tweaks`, `wallpapers`, `displays` still answer and open their tab.
+- `LayoutTweaks.qml` — the fourteen mango layouts as glyph tiles
   (`setlayout,<name>`); inner gap via `setoption,gappih/gappiv`
   (persisted to `mango-gaps`, re-applied by Wm.qml on start); outer gaps
   via `setoption,gappoh/gappov`, always equal to the bar's edge inset
@@ -68,7 +78,7 @@ icon theme in as `QS_ICON_THEME` (quickshell doesn't follow it itself).
   the first input (a bare `wlopm --off` would stay dark until the login
   swayidle's own 15-minute resume).
 - `Screenshot.qml` — `scripts/screenshot` (grim + slurp, clipboard).
-- `KeybindsPopup.qml` — the Super+/ cheatsheet. The popup itself is
+- `KeybindsPane.qml` — the Super+/ cheatsheet and editor. The pane itself is
   WM-agnostic; `scripts/keybinds` turns config.conf's binds into its rows
   (section, keys, label, line) and opens geany at a bind's line. Opened
   from the command menu or `ipc call keybinds toggle`. Mango only so far.

@@ -2,16 +2,16 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Displays (launcher, command menu): arrange, size, rotate and switch
+// Displays tab of the settings panel: arrange, size, rotate and switch
 // outputs without leaving the desktop. wlr-randr does the work and the
 // compositor answers live, so every change is a trial: 15 seconds to
 // keep it or it comes back — a mode the monitor can't show never leaves
 // you blind. Kept layouts go to displays.conf, which scripts/displays
 // puts back on every bar start (mango's monitorrule stays the fallback).
 // Drag the diagram to arrange; edges snap to their neighbours.
-Popout {
+Item {
     id: root
-    ipcNames: ["displays"]
+    required property var popup
 
     property var outs: []      // editable {name, desc, on, w, h, r, x, y, scale, transform, vrr, modes}
     property var orig: []      // as the compositor has it now
@@ -50,21 +50,16 @@ Popout {
         ? [...new Set(cur.modes.filter(m => m.w === cur.w && m.h === cur.h).map(m => m.r))].sort((a, b) => b - a)
         : []
 
-    centered: true
-    cardWidth: 840
-    cardHeight: 500
-
-    onVisibleChanged: {
-        if (visible) {
-            pick = ""
-            status = ""
-            _picked = false
-            loader.running = true
-        } else {
-            Wm.identifyOutputs = false
-            if (keepLeft > 0)
-                revert()
-        }
+    function shown() {
+        pick = ""
+        status = ""
+        _picked = false
+        loader.running = true
+    }
+    function hidden() {
+        Wm.identifyOutputs = false
+        if (keepLeft > 0)
+            revert()
     }
 
     function strip(o) { return [o.name, o.on, o.w, o.h, o.r, o.x, o.y, o.scale, o.transform, o.vrr] }
@@ -107,7 +102,7 @@ Popout {
         orig = clone(list)
         outs = list
         if (!_picked || sel >= outs.length) {
-            const here = outs.findIndex(o => root.screen && o.name === root.screen.name)
+            const here = outs.findIndex(o => popup.screen && o.name === popup.screen.name)
             sel = here >= 0 ? here : 0
         }
     }
@@ -315,7 +310,7 @@ Popout {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 76
-        width: 480
+        width: Math.min(560, parent.width * 0.55)
 
         readonly property real bw: Math.max(1, ...root.live.map(o => o.x + root.lw(o)))
         readonly property real bh: Math.max(1, ...root.live.map(o => o.y + root.lh(o)))

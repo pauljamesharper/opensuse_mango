@@ -1,12 +1,25 @@
 #!/bin/sh
 # keybinds — every bind in keybinds.conf (and any the user added in
-# local.conf) as rows for the bar's keybinds popup
-# (quickshell/KeybindsPopup.qml), one per line, tab-separated:
-#   section  keys  description  where
+# local.conf) as rows for the settings panel's Keybinds tab
+# (quickshell/KeybindsPane.qml), one per line, tab-separated:
+#   section  keys  description  where  kind  command
 # keys: alternatives split by "|", each one "+"-joined keycaps.
 # where: a line number in keybinds.conf, or local:N for local.conf.
+# kind: run (a spawn) or do (one of mango's actions); command: what it
+# runs, or the action and its arguments as the file writes them.
 #   keybinds              print the rows
 #   keybinds open WHERE   open that file in geany at that line
+# The tab's editor (keybinds.conf only; local.conf is yours by hand):
+#   keybinds get N        line N as fields: mod  key  desc  run|do  value
+#   keybinds set N MOD KEY DESC KIND VALUE      rewrite line N (and the
+#                         "# desc" above it: replaced, added or dropped)
+#   keybinds add SECTION MOD KEY DESC KIND VALUE   new bind at the end of
+#                         "# --- SECTION ---"; prints the new line number
+#   keybinds delete N     drop line N and its "# desc"
+#   keybinds check        a chord bound twice in keybinds.conf, if any
+#   keybinds apply        scripts/mango-reload
+# Every write is tried through `check` first; a duplicate is refused and
+# the file left alone. VALUE for do is "action,args" as in the file.
 #
 # What it reads from the files:
 #   "# --- name ---"   starts a section (name ends at ":", "(" or "---")
@@ -25,6 +38,88 @@ if [ "$1" = open ]; then
         *)       exec geany --line="${2:-1}" "$CONF" ;;
     esac
 fi
+
+# ---- the editor's verbs ----
+# bind line from fields; MODS upper-cased, "none" for no modifier
+fmt() {
+    mods=$(printf '%s' "$1" | tr '[:lower:]' '[:upper:]'); [ -n "$mods" ] || mods=NONE
+    if [ "$4" = run ]; then printf 'bind=%s,%s,spawn,%s\n' "$mods" "$2" "$5"
+    else printf 'bind=%s,%s,%s\n' "$mods" "$2" "$5"; fi
+}
+# a chord bound twice refuses the candidate file
+check() {
+    awk -F, '
+        /^bind=/ { k = toupper(substr($1, 6)) "," $2
+                   if (k in seen) { printf "key %s+%s is bound twice (lines %d and %d)\n", tolower(substr($1, 6)), $2, seen[k], NR > "/dev/stderr"; bad = 1 }
+                   else seen[k] = NR }
+        END { exit bad }' "$1"
+}
+commit() { if check "$1"; then mv "$1" "$CONF"; else rm -f "$1"; return 1; fi; }
+# the "# desc" line directly above a bind: a plain comment, not a header,
+# and not a note for a run (the line after the bind is another bind)
+case "${1:-}" in
+get)
+    exec awk -v n="${2:?line}" '
+        { L[NR] = $0 }
+        END {
+            if (L[n] !~ /^bind=/) exit 1
+            s = substr(L[n], 6); split(s, f, ",")
+            mod = tolower(f[1]); if (mod == "none") mod = "none"
+            key = f[2]
+            rest = substr(s, length(f[1]) + length(f[2]) + 3)
+            if (f[3] == "spawn") { kind = "run"; val = substr(rest, 7) } else { kind = "do"; val = rest }
+            desc = ""
+            if (L[n-1] ~ /^#/ && L[n-1] !~ /^#[ \t]*---/ && L[n+1] !~ /^bind/) { desc = L[n-1]; sub(/^#+[ \t]*/, "", desc) }
+            printf "%s\t%s\t%s\t%s\t%s\n", mod, key, desc, kind, val
+        }' "$CONF"
+    ;;
+set)
+    n="${2:?line}"; line=$(fmt "$3" "$4" "$5" "$6" "$7"); desc="$5"; tmp="$CONF.new"
+    awk -v n="$n" -v l="$line" -v d="$desc" '
+        { L[NR] = $0 }
+        END {
+            hasdesc = (L[n-1] ~ /^#/ && L[n-1] !~ /^#[ \t]*---/ && L[n+1] !~ /^bind/)
+            for (i = 1; i <= NR; i++) {
+                if (i == n - 1 && hasdesc) { if (d != "") print "# " d; continue }
+                if (i == n) { if (!hasdesc && d != "") print "# " d; print l; continue }
+                print L[i]
+            }
+        }' "$CONF" > "$tmp"
+    commit "$tmp" || exit 1
+    echo "$n"
+    ;;
+add)
+    sec="${2:?section}"; line=$(fmt "$3" "$4" "$5" "$6" "$7"); desc="$5"; tmp="$CONF.new"
+    ins=$(awk -v sec="$sec" '
+        /^#[ \t]*---/ { s = $0; sub(/^#[ \t]*---[ \t]*/, "", s); sub(/[ \t]*(---|:|\().*$/, "", s)
+                       insec = (tolower(s) == tolower(sec)); if (insec) last = NR; next }
+        insec && !/^[ \t]*$/ { last = NR }
+        END { print last + 0 }' "$CONF")
+    extra=0; [ -n "$desc" ] && extra=1
+    if [ "$ins" -gt 0 ]; then
+        awk -v n="$ins" -v l="$line" -v d="$desc" '{ print } NR == n { if (d != "") print "# " d; print l }' "$CONF" > "$tmp"
+        newline=$((ins + 1 + extra))
+    else
+        { cat "$CONF"; printf '\n# --- %s ---\n' "$sec"; [ -n "$desc" ] && printf '# %s\n' "$desc"; printf '%s\n' "$line"; } > "$tmp"
+        newline=$(($(wc -l < "$CONF") + 3 + extra))
+    fi
+    commit "$tmp" || exit 1
+    echo "$newline"
+    ;;
+delete)
+    n="${2:?line}"; tmp="$CONF.new"
+    awk -v n="$n" '
+        { L[NR] = $0 }
+        END {
+            hasdesc = (L[n-1] ~ /^#/ && L[n-1] !~ /^#[ \t]*---/ && L[n+1] !~ /^bind/)
+            for (i = 1; i <= NR; i++) { if (i == n || (hasdesc && i == n - 1)) continue; print L[i] }
+        }' "$CONF" > "$tmp"
+    commit "$tmp" || exit 1
+    ;;
+check)  check "$CONF" ;;
+apply)  exec "$(dirname "$(readlink -f "$0")")/mango-reload" ;;
+esac
+[ -z "${1:-}" ] || exit 0
 
 # local.conf only when it exists (a user may delete it)
 set --
@@ -135,7 +230,7 @@ END {
                 continue
             }
             nrows++
-            SEC[nrows] = section; LINE[nrows] = W[i]
+            SEC[nrows] = section; LINE[nrows] = W[i]; KIND[nrows] = "do"; CMD[nrows] = action
             FOLD[nrows] = fid; FMODS[nrows] = f[1]; FACT[nrows] = action
             FKEYS[nrows] = keyname(f[2]); FFIRST[nrows] = arg; FLAST[nrows] = arg
             lastfold = nrows
@@ -155,6 +250,8 @@ END {
         nrows++
         SEEN[k] = nrows
         SEC[nrows] = section; KEYS[nrows] = keys; DESC[nrows] = desc; LINE[nrows] = W[i]
+        KIND[nrows] = (action == "spawn") ? "run" : "do"
+        CMD[nrows] = (action == "spawn") ? arg : action (arg != "" ? "," arg : "")
     }
 
     for (r = 1; r <= nrows; r++) {
@@ -164,7 +261,7 @@ END {
             KEYS[r] = combo(FMODS[r], fk)
             DESC[r] = folddesc(FACT[r], FFIRST[r], FLAST[r])
         }
-        printf "%s\t%s\t%s\t%s\n", SEC[r], KEYS[r], DESC[r], LINE[r]
+        printf "%s\t%s\t%s\t%s\t%s\t%s\n", SEC[r], KEYS[r], DESC[r], LINE[r], KIND[r], CMD[r]
     }
 }
 ' "$CONF" "$@"
