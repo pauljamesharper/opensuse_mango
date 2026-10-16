@@ -20,9 +20,8 @@ Item {
     required property var popup     // the SettingsPopup: closed around apply
     property int kindFilter: 0      // 0 all, 1 run, 2 do
     readonly property var kinds: ["All", "Apps", "mango"]
-    // sections folded to their header (click a header); on a screen where
-    // the whole list doesn't fit, every section starts folded so all the
-    // headers show at once. A search looks through folded sections too.
+    // sections folded to their header (click a header).
+    // A search looks through folded sections too.
     property var collapsed: ({})
     // sections that start folded regardless of room: the power features
     readonly property var foldByDefault: ["scratch slots"]
@@ -529,20 +528,15 @@ Item {
             if (root.query === "")
                 root.fullHeight = contentHeight
             contentY = Math.max(0, Math.min(contentY, contentHeight - height))
-            // first measure: fold the default sections; if the list still
-            // doesn't fit after that (768p, 1080p), fold everything
-            if (root._autoFolded < 2 && contentHeight > 0 && root.rows.length) {
-                if (root._autoFolded === 0) {
-                    root._autoFolded = 1
-                    const c = Object.assign({}, root.collapsed)
-                    for (const s of root.foldByDefault) c[s] = true
-                    root.collapsed = c
-                    root.collapseGen++
-                } else {
-                    root._autoFolded = 2
-                    if (contentHeight > height)
-                        root.foldAll(true)
-                }
+            // first measure: fold the default sections (only those — a
+            // list that doesn't fit scrolls; folding everything on small
+            // screens hid the binds people came to read)
+            if (root._autoFolded === 0 && contentHeight > 0 && root.rows.length) {
+                root._autoFolded = 1
+                const c = Object.assign({}, root.collapsed)
+                for (const s of root.foldByDefault) c[s] = true
+                root.collapsed = c
+                root.collapseGen++
             }
         }
 
