@@ -1,4 +1,4 @@
-# MangoWC Quick Start
+# MangoWM Quick Start
 
 Super is the mod key. Keys: `~/.config/mango/keybinds.conf`; startup programs: `autostart.conf`; your overrides: `local.conf`; the setup's defaults: `~/.local/share/mango/defaults.conf` (Super+Shift+r reloads live).
 

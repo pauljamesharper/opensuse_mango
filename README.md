@@ -3,10 +3,10 @@
 mangobutter: butterdwm's Wayland cousin. Same butter, more mango.
 
 ![Made for Debian](https://img.shields.io/badge/Made%20for-Debian%2013-A81D33?style=flat-square&logo=debian&logoColor=white)
-![MangoWC](https://img.shields.io/badge/MangoWC-0.14.4-5294E2?style=flat-square&logo=wayland&logoColor=white)
+![MangoWM](https://img.shields.io/badge/MangoWM-0.14.4-5294E2?style=flat-square&logo=wayland&logoColor=white)
 ![Last Commit](https://img.shields.io/gitea/last-commit/drew/mangobutter?gitea_url=https://justaguy.dev&style=flat-square&logo=forgejo&logoColor=white&color=green&label=Last%20Commit)
 
-[MangoWC](https://github.com/mangowm/mango) at the core, a quickshell bar on top, for Debian 13 (trixie).
+[MangoWM](https://github.com/mangowm/mango) at the core, a quickshell bar on top, for Debian 13 (trixie).
 dwm's brain with Hyprland's face, on plain Debian stable.
 
 ![mangobutter screenshot](screenshots/desktop.png)
