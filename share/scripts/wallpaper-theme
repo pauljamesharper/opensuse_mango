@@ -241,6 +241,7 @@ if gtk_template_ok; then
     cur=$(sed -n 's/^gtk-theme-name=//p' "$GTK3_CONF" 2>/dev/null)
     [ "$cur" = "Orchis-Wallpaper" ] && NEW="Orchis-Wallpaper-B" || NEW="Orchis-Wallpaper"
     DST="$HOME/.themes/$NEW"
+    mkdir -p "$HOME/.themes"
     rm -rf "$DST"
     cp -r "$GTK_SRC" "$DST"
     sed -i "s/^Name=.*/Name=$NEW/" "$DST/index.theme"
