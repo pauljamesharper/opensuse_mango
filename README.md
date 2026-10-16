@@ -1,6 +1,6 @@
 # mangobutter
 
-mangobutter: butterdwm's Wayland cousin. Same butter, more mango.
+mangobutter: [butterdwm](https://justaguy.dev/drew/butterdwm)'s Wayland cousin. Same butter, more mango.
 
 ![Made for Debian](https://img.shields.io/badge/Made%20for-Debian%2013-A81D33?style=flat-square&logo=debian&logoColor=white)
 ![MangoWM](https://img.shields.io/badge/MangoWM-0.14.4-5294E2?style=flat-square&logo=wayland&logoColor=white)
