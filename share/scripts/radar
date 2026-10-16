@@ -18,7 +18,7 @@ lat=${1:?lat}
 lon=${2:?lon}
 z=${3:-7}
 cache=${XDG_CACHE_HOME:-$HOME/.cache}/mango/radar
-ua="mangowc-setup weather radar (https://justaguy.dev)"
+ua="mangobutter weather radar (https://justaguy.dev)"
 frames=6
 
 mkdir -p "$cache/base" || exit 1

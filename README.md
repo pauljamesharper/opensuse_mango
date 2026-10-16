@@ -1,516 +1,93 @@
-# 🥭 mangowc-setup
+# mangobutter
 
-![Made for Debian](https://img.shields.io/badge/Made%20for-Debian%2013-A81D33?style=for-the-badge&logo=debian&logoColor=white)
-![MangoWC](https://img.shields.io/badge/MangoWC-Wayland-5294E2?style=for-the-badge&logo=wayland&logoColor=white)
-![Stars](https://img.shields.io/gitea/stars/drew/mangowc-setup?gitea_url=https://justaguy.dev&style=for-the-badge&logo=forgejo&logoColor=white&color=yellow&label=Stars)
-![Forks](https://img.shields.io/gitea/forks/drew/mangowc-setup?gitea_url=https://justaguy.dev&style=for-the-badge&logo=forgejo&logoColor=white&color=blue&label=Forks)
-![Last Commit](https://img.shields.io/gitea/last-commit/drew/mangowc-setup?gitea_url=https://justaguy.dev&style=for-the-badge&logo=forgejo&logoColor=white&color=green&label=Last%20Commit)
+mangobutter: butterdwm's Wayland cousin. Same butter, more mango.
 
-A MangoWC rice script for Debian 13 (trixie).
-One script installs the compositor, the bar, and everything in between, drops
-in the config, and you're tiling — with animations — on plain Debian stable.
+![Made for Debian](https://img.shields.io/badge/Made%20for-Debian%2013-A81D33?style=flat-square&logo=debian&logoColor=white)
+![MangoWC](https://img.shields.io/badge/MangoWC-0.14.4-5294E2?style=flat-square&logo=wayland&logoColor=white)
+![Last Commit](https://img.shields.io/gitea/last-commit/drew/mangobutter?gitea_url=https://justaguy.dev&style=flat-square&logo=forgejo&logoColor=white&color=green&label=Last%20Commit)
 
-> Part of the [JustAGuy Linux](https://justaguy.dev/drew) window manager collection — installable standalone or via [butterknife](https://justaguy.dev/drew/butterknife), the installer for [Butterbian](https://butterbian.org).
+[MangoWC](https://github.com/mangowm/mango) at the core, a quickshell bar on top, for Debian 13 (trixie).
+dwm's brain with Hyprland's face, on plain Debian stable.
 
-![MangoWC Desktop](screenshots/desktop.png)
+![mangobutter screenshot](screenshots/desktop.png)
 
----
+> 📚 **The documentation is the [wiki](https://justaguy.dev/drew/mangobutter/wiki).** This README gets you installed and tells you the three things to know. Everything else, keybinds, the settings panel, scratchpads, theming, multi-monitor, the 0.14.4 pin, upgrading, troubleshooting, lives there.
 
-## 🤔 What is MangoWC?
-
-[Mango](https://github.com/mangowm/mango) is a Wayland compositor built on
-dwl — dwm's model, brought to Wayland. Tags instead of workspaces. Master and
-stack, with a dozen other layouts a keypress away. A flat `key=value` config
-that reloads while you watch.
-
-Then it adds the part dwm never had: window animations, blur, shadows and
-rounded corners, courtesy of [scenefx](https://github.com/wlrfx/scenefx).
-Think **dwm's brain with Hyprland's face**, in a few thousand lines of C, and
-no Hyprland.
+Starting from a bare machine? [butterknife](https://justaguy.dev/drew/butterknife) installs Debian 13 with this setup picked from a menu. Part of the [JustAGuy Linux](https://justaguy.dev/drew) window manager collection and the [Butterbian](https://butterbian.org) family. Formerly mangowc-setup; the old URL redirects.
 
 ---
 
-## 🚀 Installation
+## INSTALL
 
 ```bash
 sudo apt install git      # a minimal Debian doesn't have it
-git clone https://justaguy.dev/drew/mangowc-setup.git
-cd mangowc-setup
-chmod +x install.sh
+git clone https://justaguy.dev/drew/mangobutter.git
+cd mangobutter
 ./install.sh
 ```
 
-Then reboot and pick **Mango** at the login screen. On a machine that
-already had a login screen, logging out all the way is enough (a group
-membership changes), though a reboot is the sure way to get sound and
-screen sharing started. The installer tells you which applies, and warns
-if your wired connection is one NetworkManager won't manage yet.
-
 ```
-Options:
+./install.sh [OPTIONS]
+
   --only-config      Only copy config files (skip packages)
-  --help             Show help message
+  --help             Show usage
 ```
 
-Debian 13 (trixie) is the only base this has been tested on. Anything
-else — forky, sid, Ubuntu and its derivatives — the installer refuses on
-purpose. The reason is the wlroots pin, explained under **Why 0.14.4,
-and Why the Pin** below.
+Then reboot and pick **Mango** at the login screen. The installer adds [butterrepo](https://justaguy.dev/drew/butterrepo) and takes the compositor stack from it (`mangowc` 0.14.4, `libwlroots-0.19`, `libscenefx-0.4`, `quickshell`, `rofi`, `awww`), installs the rest from Debian (see the wiki's [Packages](https://justaguy.dev/drew/mangobutter/wiki/Packages) page), pulls kitty, Nerd Fonts and the GTK theme through [butterscripts](https://justaguy.dev/drew/butterscripts), and installs the `mango-session` login wrapper. No system upgrade; run `sudo apt upgrade` yourself.
 
-> ⚠️ **NVIDIA: untested.** This setup has only been run on AMD
-> hardware. The installer runs the same `nvidia-setup.sh` as sway-setup
-> (kernel modesetting plus a couple of environment variables) when it
-> detects the proprietary driver, and copies it to `~/nvidia-setup.sh`
-> for re-runs. What nobody has verified is scenefx — blur, shadows, and
-> rounded corners — on the proprietary driver. If you try it, a report
-> either way is welcome.
+Debian 13 is the only base. Anything else, forky, sid, Ubuntu, the installer refuses on purpose: the reason is the wlroots pin, explained on the wiki's [Why 0.14.4](https://justaguy.dev/drew/mangobutter/wiki/Why-0.14.4) page.
 
-Virtual machines: it runs, and the installer switches to a software cursor
-so the pointer isn't upside down under virtio-gpu, but blur and animations
-will crawl without a real GPU. Not a supported target.
+> ⚠️ **NVIDIA: untested.** Only run on AMD so far. The installer runs `nvidia-setup.sh` when it sees the proprietary driver; nobody has verified blur, shadows and rounded corners on it. Reports welcome either way.
 
-### Updating
-
-```bash
-cd mangowc-setup
-git pull
-./install.sh
-```
-
-Or **Update setup** in the command menu (`Super+Shift+M`), which does the
-same from the folder you installed from — cloning it again if you deleted
-it. Nothing checks for updates on its own; the only time the setup asks
-is at the end of an update terminal you opened (the apt pill, or *Check
-updates*), where one line says if the setup has moved on and offers to
-pull it.
-
-Nothing of yours is touched. The setup's own files — the bar, the
-scripts, the defaults, the templates — live in `~/.local/share/mango` and
-are replaced wholesale. Your folder, `~/.config/mango`, holds five files
-and your wallpapers, and the installer treats the files the way `dpkg`
-treats a conffile: one you never edited is updated silently; one you
-edited is kept, and if the shipped version changed since, the new one is
-left beside yours as `keybinds.conf.new` to merge by hand — the installer
-says so, once. Everything generated — the palette, the themed dunst
-config, `theme.conf` with your wallpaper — and every setting the bar
-keeps live in `~/.local/state/mango` and simply stay.
-
-Then reload with `Super+Shift+R` and restart the bar from the command
-menu, so it runs the new files. When a pull changed only config,
-`./install.sh --only-config` does the same without the package steps.
-
-An install from before October 2026 kept everything in `~/.config/mango`.
-The installer recognises it, moves it whole to
-`~/.config/mango.bak.<date>`, and carries over your wallpapers, your
-wallpaper choice and colours, the bar's settings, and your `keybinds.conf`
-and `local.conf` if you had them. Edits you made inside the old
-`config.conf` are in the backup: `diff` it against
-`~/.local/share/mango/defaults.conf` and put yours in `local.conf`. Delete
-the backup once you're happy.
-
-### Making it yours
-
-Three folders, by owner:
-
-| folder | what's there | on update |
-|---|---|---|
-| `~/.config/mango/` | **yours**: `config.conf` (five `source` lines), `autostart.conf` (what starts with the session), `keybinds.conf` (every binding), `rules.conf` (your window rules and scratchpads), `local.conf` (your overrides, read last so they win), `env` (session environment), `wallpaper/` (add your own here) | never replaced; the six files follow the conffile rule above |
-| `~/.local/share/mango/` | **the setup's**: `defaults.conf`, `quickshell*/`, `scripts/`, templates for rofi, dunst, kitty, swappy | replaced wholesale |
-| `~/.local/state/mango/` | **generated**: `theme.conf` (wallpaper + colours), `colors.ini`, `colors.rasi`, `kitty-theme.conf`, `dunstrc`, and the bar's settings (monitor layouts, gaps, effects, bar size, lock style, weather, launcher history) | untouched |
-
-Change a key in `keybinds.conf` — mango has no `unbind` and every matching
-bind fires, so a second `bind=` for the same keys in `local.conf` would
-run both. Add or drop a startup program in `autostart.conf`, for the same
-reason: an `exec-once` can't be cancelled from another file. Window rules
-— which apps float, open on a tag, or are a scratchpad — go in
-`rules.conf`, or through the settings panel's Rules tab, which writes it
-(and the scratchpad's toggle key into `keybinds.conf`). (The
-wallpaper daemon and the wallpaper itself start from `defaults.conf` and
-`theme.conf` — they're the theming system.) Everything else goes in
-`local.conf`, which ships with
-commented, working examples. `Super+Shift+R` reloads; `mango -p` checks
-for mistakes and names the file and line; the keybinds popup (`Super+/`)
-reads both files and opens the right one at the line.
+> 🪵 **Branches:** `main` is the release, `dev` is where work lands.
 
 ---
 
-## 📦 What It Installs
+## THREE THINGS TO KNOW
 
-trixie ships wlroots 0.18, and mango needs 0.19 plus scenefx. So the
-compositor stack comes from [butterrepo](https://justaguy.dev/drew/butterrepo)
-as proper `.deb`s, built in a clean trixie container by
-[deb-builders](https://justaguy.dev/drew/deb-builders):
+1. **`Super + /` opens the settings panel.** Keybinds, window rules and scratchpads, layouts, gaps and effects, displays and wallpapers, one place with vertical tabs. Most things you would edit a file for are a click here.
 
-| Package (butterrepo)        | Purpose                                                        |
-|-----------------------------|----------------------------------------------------------------|
-| `mangowc`                   | The compositor — 0.14.4, built with 12 tags                    |
-| `libwlroots-0.19`           | Its wlroots, side by side with Debian's 0.18 (sway keeps working) |
-| `libscenefx-0.4`            | Blur, shadows, rounded corners                                 |
-| `quickshell`                | The bar and every popup                                        |
-| `rofi`                      | Launcher and power menu when the bar isn't running             |
-| `awww`                      | Wallpaper daemon (the artist formerly known as swww) — wallpapers wipe in, they don't just appear |
+2. **Your config is six files in `~/.config/mango/`.** `keybinds.conf` is every binding, `rules.conf` every window rule and scratchpad, `local.conf` your overrides (read last, so they win), plus `autostart.conf`, `env` and the `config.conf` that sources them. The setup's own files live in `~/.local/share/mango` and are replaced on update; yours are treated like `dpkg` treats a conffile.
 
-Everything else is stock Debian:
+3. **`Super + Shift + R` reloads.** No restart, no logout. `mango -p` checks a config for mistakes and names the file and line.
 
-| Component                     | Purpose                              |
-|-------------------------------|--------------------------------------|
-| `dunst`                       | Notifications (layer-shell native)   |
-| `grim` + `slurp`              | Screenshots                          |
-| `swappy`                      | Screenshot annotate (arrows, text, blur) |
-| `cliphist` + `wl-clipboard`   | Clipboard history                    |
-| `swayidle` + `wlopm`          | Monitor power-off after 15 min idle  |
-| `xdg-desktop-portal-wlr/gtk`  | Screen sharing, file dialogs         |
-| `x11-xserver-utils`           | `xhost`, so password-prompted root apps (Timeshift, GParted) can open a window |
-| `build-essential`             | Compiler toolchain, as in the other setups (nothing here builds from source, but a desktop should be able to) |
-| `kitty`                       | Terminal (via butterscripts)         |
-| `geany`                       | Editor (via butterscripts): `Super + E`, and editing a bind from the keybinds viewer |
-| `loupe`                       | Image viewer; follows the wallpaper theme like the GTK3 apps do |
-| `thunar` + plugins            | File manager                         |
-| `pipewire`                    | Audio                                |
-| `nwg-look`                    | GTK configurator                     |
-| `wlr-randr`                   | The Displays card: mode, scale, rotation, arrangement, kept across restarts and hotplug |
-| `qml6-module-qtquick-effects` | The lock screen's blurred-wallpaper style (without it: the wallpaper dimmed) |
-| `wlsunset`, `power-profiles-daemon`, `brightnessctl` | The command menu's toggles |
-| `network-manager-config-connectivity-debian` | Lets the network icon tell "no internet" and hotel/café sign-in pages from a working connection |
-| `btop`                        | The metrics card's full view         |
-| `mpd-mpris` (butterrepo, optional) | MPD users: puts MPD on the media bus so the Media module, playerctl and media keys see it (`sudo apt install mpd-mpris && systemctl --user enable --now mpd-mpris`) |
-| `qrencode`                    | The network app's Share Wi-Fi QR code |
-| `fastfetch`                   | The launcher's "About this system"   |
-
-> 💡 _Themes by [vinceliuice](https://github.com/vinceliuice) — Orchis (GTK) and Colloid (icons)._
+Everything else is on the wiki: [Keybinds](https://justaguy.dev/drew/mangobutter/wiki/Keybinds) · [Settings Panel](https://justaguy.dev/drew/mangobutter/wiki/Settings-Panel) · [Scratchpads](https://justaguy.dev/drew/mangobutter/wiki/Scratchpads) · [Customization](https://justaguy.dev/drew/mangobutter/wiki/Customization) · [Themes](https://justaguy.dev/drew/mangobutter/wiki/Themes) · [Multi-Monitor](https://justaguy.dev/drew/mangobutter/wiki/Multi-Monitor) · [Why 0.14.4](https://justaguy.dev/drew/mangobutter/wiki/Why-0.14.4) · [Upgrading](https://justaguy.dev/drew/mangobutter/wiki/Upgrading) · [Troubleshooting](https://justaguy.dev/drew/mangobutter/wiki/Troubleshooting)
 
 ---
 
-## 📊 The Bar
+## WHY MANGO
 
-The same quickshell shell that runs the dwm, bspwm and openbox setups, with a
-mango backend. Tags, occupancy, urgency, focused title and layout come from a
-single `mmsg watch` stream — no polling, no patch — and clicks go back through
-`mmsg dispatch`.
-
-| Module      | Left click               | Right click             | Scroll         |
-|-------------|--------------------------|-------------------------|----------------|
-| Launcher    | app launcher             | wallpaper picker        | —              |
-| Tags        | view                     | —                       | cycle tags     |
-| Layout      | layout + tweaks picker   | (empty bar: same)       | cycle layouts  |
-| Media       | play / pause             | now-playing popup       | prev / next    |
-| Weather     | 3-day forecast + radar   | location / units        | —              |
-| CPU / RAM   | meters, temperatures, disks (NAS included), disk activity, top programs | btop | — |
-| Volume      | volume popup: output + picker, microphone + live meter, per-app volume, pavucontrol | mute | ±2% |
-| Network     | network app: your connection + ping/speed/IP, VPN, known & other Wi-Fi, Bluetooth (the login page while it says "sign in") | nm-connection-editor | —  |
-| Clock       | calendar                 | —                       | —              |
-| Screenshot  | region                   | full screen             | —              |
-| Commands    | command menu             | —                       | —              |
-
-The **layout picker** shows all fourteen mango layouts as glyph tiles, plus
-live sliders for gaps, border width, master width and master count,
-toggles for blur, shadows and animations, an unfocused-window opacity
-slider (they all change under your cursor and stick), the bar's own
-height and scale, and **popup size**: every popup, the launcher and the
-network app grow together (handy on 1440p and 4K screens, or for older
-eyes). The **command menu** (far right) is in sections: **Batteries** — the
-laptop's (with time left, draw and health) plus wireless mice, keyboards
-and headsets, with a warning when one runs low and power saver switched on
-by itself when a laptop drops to 20%; **Quick settings** — power profile,
-keep awake, microphone, night light, do not disturb, Bluetooth and a focus
-timer, each tile saying what it is and its state; and **System** —
-notifications, snapshots (Timeshift, on Butterbian's btrfs installs), check
-updates, update setup, displays, keybindings, restart bar, power menu. An encrypted disk
-shows a lock on its meter in the system card.
-
-**Displays** (command menu, or the launcher's Displays action) draws your
-outputs on a stage: drag to arrange, pick resolution, refresh rate, scale,
-rotation and variable refresh per output, switch one off, identify them.
-Every change is a trial: keep it within 15 seconds or it reverts, so a
-mode the monitor can't show never leaves you blind. A kept layout is put
-back on every start and whenever a monitor is plugged in.
-
-**Lock screen** (`Super + Ctrl + L`, the power menu, the launcher's Lock
-screen): quickshell again, through the session-lock protocol and PAM, so
-there's no swaylock or gtklock. The background is **Matrix rain** in the
-wallpaper's accent colour (the default on Butterbian) or the **wallpaper
-blurred**; the command menu's "Lock style" tile switches. "Lock on idle"
-there locks 30 seconds before the 15-minute screen-off and before the
-machine sleeps; it's off unless you turn it on.
-
-**Weather** shows a 3-day forecast; its "radar" button swaps in the last
-hour of rain on a dark map, looping, centred on the forecast's location
-(click for the full radar in the browser).
-
-Details in [`share/quickshell/README.md`](share/quickshell/README.md).
+Mango is dwm's model, tags and a master stack, as a wlroots compositor with scenefx underneath: blur, shadows, rounded corners and animations without a plugin in sight. It reads one text config, reloads it in place, and has an IPC the bar can talk to. On top of it sits the same [quickshell](https://quickshell.org/) bar as [butterdwm](https://justaguy.dev/drew/butterdwm): tag pills with live occupancy, a launcher, layout picker, tray, media, weather, network, the settings panel, and wallpaper-driven theming that recolors the whole desktop. On Wayland it is a layer-shell surface, so there is nothing to patch and nothing to hand-merge on the next release. The full reasoning is on the wiki's [Architecture](https://justaguy.dev/drew/mangobutter/wiki/Architecture) page.
 
 ---
 
-## 🎨 Wallpaper-Driven Theming
+## WHAT'S IN THE BOX
 
-`Super + Shift + P` opens the wallpaper picker (arrows or `hjkl` move, Enter
-applies, `o` opens the wallpaper folder, Escape closes). Pick an image and the desktop
-re-colors itself from it: the bar, rofi, dunst, kitty, the GTK theme and icon
-set, and mango's own border colors — then the new wallpaper wipes across the
-screen. The palette is extracted right in the picker; nothing to configure.
-Wallpapers live in `~/.config/mango/wallpaper/`. Drop in your own and they
-show up next time you open it.
-
----
-
-## 🔑 Keybindings Overview
-
-Super is the mod key. Same muscle memory as the other setups.
-
-| Key Combo              | Action                                |
-|------------------------|----------------------------------------|
-| `Super + Return`       | Terminal (kitty)                       |
-| `Super + \``           | Drop-down terminal (scratchpad)        |
-| `Super + Space`        | App launcher                           |
-| `Super + /`            | Keybind cheatsheet                     |
-| `Super + Ctrl + L`     | Lock screen                            |
-| `Super + Q`            | Close window                           |
-| `Super + Shift + Q`    | Quit mango                             |
-| `Super + Shift + R`    | Reload config (live)                   |
-| `Super + X`            | Power menu                             |
-| `Super + B` / `Super + Shift + B` | Firefox / Firefox private   |
-| `Super + C` / `Super + F` / `Super + E` | Helium / Thunar / Geany |
-| `Super + D` / `Super + G` / `Super + O` | Discord / GIMP / OBS, each on its home tag (8 / 9 / 10) |
-| `Super + Shift + Space`| Toggle floating                        |
-| `Super + Shift + F`    | Fullscreen                             |
-| `Super + T` / `Super + W` | Cycle layouts / Monocle             |
-| `Super + Tab`          | Overview of every window               |
-| `Alt + Tab`            | Next window                            |
-| `Super + H/J/K/L` or arrows | Focus window                      |
-| `Super + Shift + H/J/K/L` or arrows | Swap window               |
-| `Super + Ctrl + ←/→`   | Master width                           |
-| `Super + Ctrl + ↑/↓`   | Master count                           |
-| `Super + , / .`        | Focus previous / next monitor          |
-| `Super + Shift + , / .`| Send window to previous / next monitor |
-| `Super + scroll`       | Walk the tags                          |
-| `Super + 1–9/0/-/=`    | View tag 1–12                          |
-| `Super + Shift + 1–9/0/-/=` | Send window to tag 1–12           |
-| `Super + Shift + P`    | Wallpaper picker                       |
-| `Super + Shift + M`    | Command menu                           |
-| `Super + Shift + N`    | Network app                            |
-| `Super + Shift + T`    | Settings panel, Layout tab             |
-| `Super + S` / `Super + Shift + S` | Screenshot full / region (to `~/Screenshots`); `Print` / `Shift + Print` too |
-| `Super + Ctrl + S` / `Ctrl + Print` | Screenshot region to the clipboard |
-| `Super + Alt + S`      | Screenshot region, annotate in swappy  |
-
-`Super + /` opens the bar's **settings panel** on its Keybinds tab, one
-card with the tabs down the left. **Keybinds** lists every bind in
-`keybinds.conf` (and `local.conf`), grouped by the config's
-`# --- section ---` headers; type to filter, click a bind to edit it
-(record a chord, change the label or what it runs), `+` on a section
-adds one, right-click opens the file at the line. **Rules** is
-`rules.conf`: which apps float, open on a tag, or are a scratchpad —
-pick an open window, say what it should do, and a scratchpad's toggle
-key is written to `keybinds.conf` with it. **Layout** holds the layout
-grid, the gap, border, master and unfocused-opacity sliders and the
-blur, shadows and animation toggles. **Bar** holds bar height, element
-scale, popup size, the tag-icons toggle and the Modules lists: three
-zones, left, center and right, every module shown or hidden,
-reordered, or moved to another zone, live (the launcher stays first
-and the command menu last; the window title is a module too, so the
-clock can sit in the middle). **Wallpaper** is the thumbnail grid that
-re-themes the desktop; **Displays** arranges, sizes and rotates
-outputs. Apply, bottom left, reloads mango once the Keybinds or Rules
-tab has saved something. Ctrl+PgUp/PgDn walk the tabs; Tab walks an
-editor's fields; Escape closes.
-
-**Touchpad:** three fingers swipe through the tags, three up for the
-overview; four fingers carry the focused window along. The bottom-left
-hot corner opens the overview too.
-
-**Effects:** shadows sit under floating windows and the bar's popups. Blur
-is off by default; turn it on in the layout picker and it frosts what's
-behind those popups. Tiled windows stay flat and opaque so it's quick on
-integrated graphics. Every one of these is a toggle in the picker.
-
-Two sliders there are worth trying together: **unfocused opacity** fades
-every window that doesn't have focus a little toward the wallpaper (about
-90% is the sweet spot; lower and text in the stack gets hard to read on a
-bright wallpaper), and **border width** goes down to 0. Once the stack
-dims, the border isn't the only focus cue any more, so a borderless look
-still shows you which window is live. The opacity slider needs mangowc
-0.14.4-6 or newer from butterrepo to affect windows that are already open.
-`~/QUICKSTART-mango.md` lands in your home folder for the first few days.
+| Component | Job |
+|---|---|
+| **mangowc** | Tiling Wayland compositor, 0.14.4, built with 12 tags |
+| **quickshell bar** | Tags, launcher, layout picker, tray, media, network, weather, power, settings panel |
+| **Wallpaper theming** | Pick a wallpaper and the desktop, terminal and GTK re-theme from it |
+| **kitty** | Terminal, with a session-local config |
+| **awww** | Wallpaper daemon; wallpapers wipe in |
+| **dunst** | Notifications |
+| **grim + slurp + swappy** | Screenshots and annotation |
 
 ---
 
-## 📂 Configuration Files
+## CREDITS
 
-```
-~/.config/mango/              yours
-├── config.conf               # five source lines: defaults, autostart, keybinds, rules, local
-├── autostart.conf            # what starts with the session — yours after install
-├── keybinds.conf             # every binding — yours after install
-├── rules.conf                # window rules and scratchpads — yours after install
-├── local.conf                # your overrides, read last
-├── env                       # session environment, sourced at login by mango-session
-└── wallpaper/                # the shipped set plus your own
+This project is a config on top of other people's software. Mango is by [DreamMaoMao](https://github.com/DreamMaoMao) and [contributors](https://github.com/mangowm/mango), on [wlroots](https://gitlab.freedesktop.org/wlroots/wlroots) and [scenefx](https://github.com/wlrfx/scenefx). Quickshell by [outfoxxed](https://git.outfoxxed.me/quickshell/quickshell). awww by [LGFae](https://codeberg.org/LGFae/awww). rofi-wayland by [lbonn](https://github.com/lbonn/rofi). dunst by the [dunst project](https://dunst-project.org). kitty by [Kovid Goyal](https://sw.kovidgoyal.net/kitty/). GTK and icon themes by [vinceliuice](https://github.com/vinceliuice): [Orchis](https://github.com/vinceliuice/Orchis-theme) and [Colloid](https://github.com/vinceliuice/Colloid-icon-theme).
 
-~/.local/share/mango/         the setup's — replaced on update
-├── defaults.conf             # look, input, layouts, wallpaper daemon, the setup's own rules
-├── quickshell/               # the bar (see its README)
-├── quickshell-network/       # the network app (its own qs instance)
-├── quickshell-lock/          # the lock screen (its own qs instance)
-├── scripts/
-│   ├── bar                   # quickshell helper: restart | log | ipc …
-│   ├── mango-ipc             # mmsg wrapper that finds the socket
-│   ├── wallpaper-theme       # the theming engine
-│   ├── screenshot            # grim/slurp: full | region
-│   ├── changevolume          # volume + notifications
-│   ├── keybinds              # keybinds.conf's binds for the Keybinds tab, and its editor
-│   ├── rules                 # rules.conf's rules for the Rules tab, and its editor
-│   ├── procs                 # /proc snapshot for the metrics card
-│   ├── sysinfo               # disks, disk activity and temperatures for it
-│   ├── displays              # wlr-randr for the Displays card: list | save | apply | forget
-│   ├── radar                 # map + rain tiles for the weather card's radar
-│   ├── launcher              # opens the app grid (rofi if the bar is down)
-│   ├── lock                  # the lock screen (quickshell-lock) and its style
-│   ├── idle                  # swayidle policy: screen off, optional lock
-│   ├── power / network
-├── rofi/                     # config / power .rasi (the palette comes from state)
-├── dunst/dunstrc             # template; the coloured copy is in state
-├── kitty/kitty.conf          # session-local kitty config, see below
-└── swappy/config
+## LICENSE
 
-~/.local/state/mango/         generated — never replaced
-├── theme.conf                # wallpaper + colours, written by the wallpaper picker
-├── colors.ini                # the live palette the bar watches
-├── colors.rasi, kitty-theme.conf, dunstrc
-└── bar-height, mango-gaps, displays.conf, weather-location, …
-```
+GPL-2.0. See [LICENSE](LICENSE).
 
----
-
-## 🐱 Kitty Is Session-Local
-
-`~/.config/mango/env` holds session environment:
-`KITTY_CONFIG_DIRECTORY` pointing at the setup's `kitty/` folder, and
-`MANGO_STATE_DIR`, from which `kitty.conf` includes the wallpaper colours.
-The mangowc package's session entry runs `mango-session`, which sources
-that file and then starts the compositor, so every kitty mango spawns
-reads the session's own kitty config, the same idea as the dwm, bspwm and
-openbox setups. The wallpaper picker recolors the terminal there without
-touching `~/.config/kitty`, and a global kitty change never reaches this
-session unless you want it to. Works the same under lightdm, sddm, gdm, ly or a
-TTY start — they all run the session entry. Needs mangowc 0.14.4-4 or newer.
-
----
-
-## 🔢 Why 12 Tags?
-
-Upstream mango has nine, as a compile-time array. Every other setup in this
-collection has twelve workspaces on `Super + 1–9, 0, -, =`, so the butterrepo
-build carries a one-line patch for twelve. The bar reads the count from the
-compositor, so it just follows.
-
----
-
-## 📌 Why 0.14.4, and Why the Pin
-
-Short version: **mango 0.14.4 is the newest mango that can exist on
-Debian 13.** Here's the chain, because "just use the latest" is the first
-question everyone asks.
-
-**1. Mango rides on wlroots.** Every mango release pins a wlroots series
-(and a matching scenefx). trixie ships wlroots **0.18**. Mango hasn't run
-on 0.18 for a long time, so any mango at all means packaging a newer
-wlroots ourselves.
-
-**2. wlroots 0.19 is the last one that builds on trixie's libraries.**
-It compiles cleanly against stock trixie: same wayland, same libdrm, same
-xkbcommon. So butterrepo ships it as `libwlroots-0.19`, a separate package
-with version-suffixed paths that installs *next to* Debian's 0.18 — sway
-and everything else on 0.18 keeps working untouched.
-
-**3. wlroots 0.20 does not.** We test-built it in a clean trixie
-container. It needs four base libraries newer than Debian 13 has:
-
-| wlroots 0.20 needs        | trixie ships |
-|---------------------------|--------------|
-| wayland-server 1.24       | 1.23.1       |
-| wayland-protocols 1.47    | 1.44         |
-| libdrm 2.4.129            | 2.4.124      |
-| xkbcommon 1.8             | 1.7.0        |
-
-And they're not header-only gaps: it calls a libdrm function trixie's
-runtime library doesn't export, and needs protocol files trixie's
-wayland-protocols doesn't carry. Shipping replacements would mean a
-third-party repo swapping out `libdrm` and `libwayland` underneath Mesa
-and Xorg on every user's machine. That's not a line we're willing to
-cross for a window manager.
-
-**4. So the stack is pinned where wlroots 0.19 ends:**
-
-| Package           | Version | Why this one                                      |
-|-------------------|---------|---------------------------------------------------|
-| `libwlroots-0.19` | 0.19.3  | Last wlroots series that builds on trixie          |
-| `libscenefx-0.4`  | 0.4.1   | The scenefx series for wlroots 0.19                |
-| `mangowc`         | 0.14.4  | Last mango on wlroots 0.19 / scenefx 0.4; 0.15.0 moved to 0.20 |
-
-**"But scenefx 0.5 is out."** It is, and it's the same wall one layer up.
-scenefx tracks wlroots one to one — its build file requires wlroots 0.20
-and refuses anything older — and mango pins the pair together: 0.14.x
-asks for the scenefx 0.4 API by name, 0.15+ for 0.5. So these aren't
-three separate version choices. There's one choice, wlroots 0.19, and the
-other two follow from it.
-
-0.14.4 is the bugfix end of its line — a known-good snapshot, frozen the
-way everything on Debian stable is frozen. It won't get upstream's newer
-features (HDR, window groups, the GNOME-style switcher, configurable tag
-count) and it won't get upstream's newer fixes either. What it *will* do is
-stay exactly the same under you, which for a setup script is the point.
-
-**5. Newer mango arrives with forky.** Debian 14 already carries wlroots
-0.20.2 and scenefx 0.5 in its archive, so on that base current mango is an
-ordinary build. That'll be a new branch of this setup, not a silent bump:
-mango renames dispatchers between releases, and a config that works on
-0.14 needs edits for 0.16.
-
----
-
-## 🩹 Two Things the Installer Fixes for You
-
-- **GPU render node access.** scenefx opens `/dev/dri/renderD*` directly
-  at startup and fails hard if it can't. logind usually grants the active
-  session an ACL on it — usually. The installer adds you to the `render`
-  group so it never depends on timing. (This is the log-out-all-the-way
-  step.)
-- **seatd vs logind.** If the `seatd` daemon is running beside a display
-  manager, mango can't become DRM master, the session dies in eight
-  seconds, and lightdm's greeter hangs with it. Nothing here needs seatd;
-  the installer disables it and logind keeps the seat.
-
-Both were found the hard way so you don't have to.
-
----
-
-## Credits
-
-This project is a *config* on top of other people's software. Mango is by
-[DreamMaoMao](https://github.com/DreamMaoMao) and
-[contributors](https://github.com/mangowm/mango), on
-[wlroots](https://gitlab.freedesktop.org/wlroots/wlroots) and
-[scenefx](https://github.com/wlrfx/scenefx) (wlrfx). Quickshell by
-[outfoxxed](https://git.outfoxxed.me/quickshell/quickshell). awww by
-[LGFae](https://codeberg.org/LGFae/awww). rofi-wayland by
-[lbonn](https://github.com/lbonn/rofi). dunst by the
-[dunst project](https://dunst-project.org). kitty by
-[Kovid Goyal](https://sw.kovidgoyal.net/kitty/). GTK + icon themes by
-[vinceliuice](https://github.com/vinceliuice) —
-[Orchis](https://github.com/vinceliuice/Orchis-theme) and
-[Colloid](https://github.com/vinceliuice/Colloid-icon-theme).
-
----
-
-## License
-
-GPL-2.0 - See [LICENSE](LICENSE) for details.
-
-## Support
+## SUPPORT
 
 <a href="https://www.buymeacoffee.com/justaguylinux" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy me a coffee" /></a>
 
-## Connect
+## CONNECT
 
 - [YouTube](https://youtube.com/@justaguylinux) — tutorials and guides
 - [Butterforge](https://justaguy.dev/drew) — source code and projects
