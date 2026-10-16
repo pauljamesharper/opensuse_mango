@@ -7,8 +7,8 @@ Super is the mod key. Keys: `~/.config/mango/keybinds.conf`; startup programs: `
 |---|---|
 | Super + Return | Terminal (kitty) |
 | Super + ` | Drop-down terminal |
-| Super + Space | App launcher (rofi) |
-| Super + / | Keybinding cheatsheet |
+| Super + Space | App launcher (the bar's; rofi if the bar is down) |
+| Super + / | Settings panel, Keybinds tab |
 | Super + q | Close window |
 | Super + Shift + q | Quit mango |
 | Super + x | Power menu |
@@ -41,10 +41,10 @@ Super is the mod key. Keys: `~/.config/mango/keybinds.conf`; startup programs: `
 ## Bar
 | Keys | Action |
 |---|---|
-| Super + Shift + p | Wallpaper picker — re-themes bar, rofi, dunst, kitty, GTK and mango borders from the image |
+| Super + Shift + p | Settings panel, Wallpaper tab — a wallpaper re-themes bar, rofi, dunst, kitty, GTK and mango borders |
 | Super + Shift + m | Command menu (power profile, keep awake, night light, DND, pomodoro) |
 | Super + Shift + n | Network app (Wi-Fi, VPN, Bluetooth) |
-| Super + Shift + t | Layout / tweaks picker — layouts, gaps, blur / shadows / animations (also: right-click an empty stretch of the bar) |
+| Super + Shift + t | Settings panel, Layout tab — layouts, gaps, blur / shadows / animations (also: right-click an empty stretch of the bar) |
 | Super + s / Super + Shift + s | Screenshot full / region (saved to ~/Screenshots) |
 
 ## Apps

@@ -190,7 +190,7 @@ Singleton {
     function setModules(list) {
         modules = list
         Quickshell.execDetached(["sh", "-c",
-            "printf '%s\\n' " + list.map(m => "'" + m.zone + " " + (m.on ? "" : "-") + m.key + "'").join(" ") + " > '" + root.configDir + "/bar-modules'"])
+            "printf '%s\\n' " + list.map(m => "'" + m.zone + " " + (m.on ? "" : "-") + m.key + "'").join(" ") + " > '" + root.stateDir + "/bar-modules'"])
     }
     FileView {
         path: root.stateDir + "/bar-modules"
