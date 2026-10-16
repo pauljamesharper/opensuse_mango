@@ -3,9 +3,13 @@
 # everything mango spawns — terminals, launchers, the scratchpad — inherits
 # it. Plain KEY=VALUE lines; shell syntax, so $HOME works.
 
-# kitty reads its config from here: wallpaper-theme recolours
-# current-theme.conf in this folder and leaves ~/.config/kitty alone.
-KITTY_CONFIG_DIRECTORY=$HOME/.config/mango/kitty
+# Where the setup keeps its generated files (wallpaper palette, themed
+# dunst config, kitty colours); kitty.conf includes its theme from here.
+MANGO_STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/mango
+
+# kitty reads the session's own config from the setup's share folder and
+# leaves ~/.config/kitty alone.
+KITTY_CONFIG_DIRECTORY=${XDG_DATA_HOME:-$HOME/.local/share}/mango/kitty
 
 # Software cursor. Virtual machines (virtio-gpu draws the hardware cursor
 # upside down or not at all) and the proprietary NVIDIA driver need it.
