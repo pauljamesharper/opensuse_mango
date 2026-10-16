@@ -33,7 +33,7 @@ cd mangobutter
   --help             Show usage
 ```
 
-Then reboot and pick **Mango** at the login screen. The installer adds [butterrepo](https://justaguy.dev/drew/butterrepo) and takes the compositor stack from it (`mangowc` 0.14.4, `libwlroots-0.19`, `libscenefx-0.4`, `quickshell`, `rofi`, `awww`), installs the rest from Debian (see the wiki's [Packages](https://justaguy.dev/drew/mangobutter/wiki/Packages) page), pulls kitty, Nerd Fonts and the GTK theme through [butterscripts](https://justaguy.dev/drew/butterscripts), and installs the `mango-session` login wrapper. No system upgrade; run `sudo apt upgrade` yourself.
+Then reboot and pick **Mango** at the login screen. The installer refreshes and upgrades the system (`apt-get upgrade`), adds [butterrepo](https://justaguy.dev/drew/butterrepo) and takes the compositor stack and themes from it (`mangowc` 0.14.4, `libwlroots-0.19`, `libscenefx-0.4`, `quickshell`, `rofi`, `awww`, Orchis and Colloid), installs the rest from Debian (see the wiki's [Packages](https://justaguy.dev/drew/mangobutter/wiki/Packages) page), pulls kitty, Nerd Fonts and LightDM through [butterscripts](https://justaguy.dev/drew/butterscripts), installs the `mango-session` login wrapper, and ends with an optional tools prompt.
 
 Debian 13 is the only base. Anything else, forky, sid, Ubuntu, the installer refuses on purpose: the reason is the wlroots pin, explained on the wiki's [Why 0.14.4](https://justaguy.dev/drew/mangobutter/wiki/Why-0.14.4) page.
 
