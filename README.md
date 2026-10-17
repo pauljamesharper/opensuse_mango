@@ -1,4 +1,4 @@
-# mangobutter
+# 🥭 mangobutter
 
 mangobutter: [butterdwm](https://justaguy.dev/drew/butterdwm)'s Wayland cousin. Same butter, more mango.
 
