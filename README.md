@@ -11,7 +11,7 @@ dwm's brain with Hyprland's face, on plain Debian stable.
 
 ![mangobutter screenshot](screenshots/desktop.png)
 
-> 📚 **The documentation is the [wiki](https://justaguy.dev/drew/mangobutter/wiki).** This README gets you installed and tells you the three things to know. Everything else, keybinds, the settings panel, scratchpads, theming, multi-monitor, the 0.14.4 pin, upgrading, troubleshooting, lives there.
+> 📚 **The documentation is the [wiki](https://justaguy.dev/drew/mangobutter/wiki).** This README gets you installed and tells you the four things to know. Everything else, keybinds, the settings panel, scratchpads, theming, multi-monitor, the 0.14.4 pin, upgrading, troubleshooting, lives there.
 
 Starting from a bare machine? [butterknife](https://justaguy.dev/drew/butterknife) installs Debian 13 with this setup picked from a menu. Part of the [JustAGuy Linux](https://justaguy.dev/drew) window manager collection and the [Butterbian](https://butterbian.org) family. Formerly mangowc-setup; the old URL redirects.
 
@@ -43,13 +43,15 @@ Debian 13 is the only base. Anything else, forky, sid, Ubuntu, the installer ref
 
 ---
 
-## THREE THINGS TO KNOW
+## FOUR THINGS TO KNOW
 
 1. **`Super + /` opens the settings panel.** Keybinds, window rules and scratchpads, layouts, gaps and effects, displays and wallpapers, one place with vertical tabs. Most things you would edit a file for are a click here.
 
 2. **Your config is six files in `~/.config/mango/`.** `keybinds.conf` is every binding, `rules.conf` every window rule and scratchpad, `local.conf` your overrides (read last, so they win), plus `autostart.conf`, `env` and the `config.conf` that sources them. The setup's own files live in `~/.local/share/mango` and are replaced on update; yours are treated like `dpkg` treats a conffile.
 
 3. **`Super + Shift + R` reloads.** No restart, no logout. `mango -p` checks a config for mistakes and names the file and line.
+
+4. **Updating is a menu entry.** `Super + Shift + m`, then **Update setup**: it pulls the clone you installed from and reinstalls in place, the way dpkg treats a conffile. A file you edited stays as it is; if the shipped version changed too, the new one lands beside yours as `.new` and the installer says so, once. The setup's own files are replaced, your settings and colours are left alone. Nothing checks on its own. [Upgrading](https://justaguy.dev/drew/mangobutter/wiki/Upgrading) has the rule.
 
 Everything else is on the wiki: [Keybinds](https://justaguy.dev/drew/mangobutter/wiki/Keybinds) · [Settings Panel](https://justaguy.dev/drew/mangobutter/wiki/Settings-Panel) · [Scratchpads](https://justaguy.dev/drew/mangobutter/wiki/Scratchpads) · [Customization](https://justaguy.dev/drew/mangobutter/wiki/Customization) · [Themes](https://justaguy.dev/drew/mangobutter/wiki/Themes) · [Multi-Monitor](https://justaguy.dev/drew/mangobutter/wiki/Multi-Monitor) · [Why 0.14.4](https://justaguy.dev/drew/mangobutter/wiki/Why-0.14.4) · [Upgrading](https://justaguy.dev/drew/mangobutter/wiki/Upgrading) · [Troubleshooting](https://justaguy.dev/drew/mangobutter/wiki/Troubleshooting)
 
