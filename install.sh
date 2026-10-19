@@ -67,17 +67,9 @@ if [ "$ONLY_CONFIG" = false ]; then
     esac
 fi
 
-# Banner
 clear 2>/dev/null || true
-echo -e "${CYAN}"
-echo " +-+-+-+-+-+-+-+-+-+-+-+-+ "
-echo " |M|a|n|g|o| |S|e|t|u|p|  | "
-echo " +-+-+-+-+-+-+-+-+-+-+-+-+ "
-echo " |W|a|y|l|a|n|d| |W|M|    | "
-echo " +-+-+-+-+-+-+-+-+-+-+-+-+ "
-echo -e "${NC}\n"
+printf '\033[1mmangobutter\033[0m\n\033[2mmango for Debian · justaguy.dev/drew/mangobutter\033[0m\n\n'
 
-# Update system
 # A machine with no login screen yet (a minimal Debian) needs a reboot at
 # the end, not a logout: remembered now, before one gets installed
 DM_AT_START=$(systemctl is-active display-manager 2>/dev/null || true)
@@ -407,7 +399,6 @@ if [ "$ONLY_CONFIG" = false ]; then
     fi
 
     # Optional tools
-    clear 2>/dev/null || true
     read -p "Install optional tools (browsers, editors, etc)? (y/n) " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
