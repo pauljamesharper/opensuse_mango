@@ -438,6 +438,16 @@ fi
 # its state files as it starts, which is why reload_config goes first).
 # The terminal this runs in was started detached from the bar, so it
 # outlives the restart.
+# The default wallpaper has to exist for theme.conf's awww line: the
+# wallpaper folder is cloned once, on the first install, so a default that
+# changed since (or a config-only run on a bare machine) fetches that one file
+DEFAULT_WALLPAPER=mangobutter-journey.png
+if [ ! -f "$CONFIG_DIR/wallpaper/$DEFAULT_WALLPAPER" ]; then
+    mkdir -p "$CONFIG_DIR/wallpaper"
+    wget -qO "$CONFIG_DIR/wallpaper/$DEFAULT_WALLPAPER" "https://raw.githubusercontent.com/drewgrif/wallpapers/main/$DEFAULT_WALLPAPER" \
+        || { rm -f "$CONFIG_DIR/wallpaper/$DEFAULT_WALLPAPER"; warn "could not fetch the default wallpaper ($DEFAULT_WALLPAPER); pick one from the bar"; }
+fi
+
 LIVE=false
 if [ "$ONLY_CONFIG" = true ] && [ -n "${WAYLAND_DISPLAY:-}" ] && pgrep -x -u "$USER" mango >/dev/null 2>&1; then
     LIVE=true
