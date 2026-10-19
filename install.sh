@@ -425,9 +425,24 @@ else
     msg "Skipping external tool installation (--only-config mode)"
 fi
 
+# Run from inside the session (Update setup): finish the job here, so the
+# new files are live without a logout - mango reloads config.conf, the
+# bar restarts on the new QML (and re-applies the gaps and effects from
+# its state files as it starts, which is why reload_config goes first).
+# The terminal this runs in was started detached from the bar, so it
+# outlives the restart.
+LIVE=false
+if [ "$ONLY_CONFIG" = true ] && [ -n "${WAYLAND_DISPLAY:-}" ] && pgrep -x -u "$USER" mango >/dev/null 2>&1; then
+    LIVE=true
+    "$SHARE_DIR/scripts/mango-ipc" dispatch reload_config >/dev/null 2>&1 || warn "mango did not reload config.conf; Super + Shift + r"
+    ("$SHARE_DIR/scripts/bar" restart >/dev/null 2>&1 &)
+fi
+
 # Done
 echo -e "\n${GREEN}Installation complete!${NC}"
-if [ "$DM_AT_START" = active ] || [ "$ONLY_CONFIG" = true ]; then
+if [ "$LIVE" = true ]; then
+    echo "1. mango reloaded and the bar restarted: the update is live"
+elif [ "$DM_AT_START" = active ] || [ "$ONLY_CONFIG" = true ]; then
     echo "1. Log out (fully — the render group applies at next login) and select 'Mango' from your display manager"
     echo "   (no sound or screen sharing afterwards? reboot once: services installed just now start with a fresh login)"
 else
