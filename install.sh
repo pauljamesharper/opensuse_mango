@@ -289,12 +289,28 @@ grep -q 'rules\.conf' "$CONFIG_DIR/config.conf" || sed -i '/^source=.*keybinds\.
 # MANGO_STATE_DIR in env is new in 2026-10; an env kept from before needs it
 grep -q '^MANGO_STATE_DIR=' "$CONFIG_DIR/env" || printf '\nMANGO_STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/mango\n' >> "$CONFIG_DIR/env"
 
-# Generated files: the defaults for the default wallpaper, only where
-# nothing exists yet (a wallpaper pick regenerates them all)
+# Generated files: the default look, written from the default wallpaper.
+# A pick rewrites them all, so they follow the conffile rule without the
+# .new: replaced while they still equal what was shipped last time, left
+# alone after a pick. An install from before the shipped copies existed
+# is judged against the commit it was installed from.
+mkdir -p "$STATE_DIR/shipped/state"
+PREV_COMMIT=$(cat "$STATE_DIR/shipped/commit" 2>/dev/null || true)
+generated() {        # <ours> <name> <path in the repo at the old commit>
+    local ours="$1" theirs="$STATE_DIR/$2" prev="$STATE_DIR/shipped/state/$2"
+    if [ ! -e "$theirs" ]; then
+        cp "$ours" "$theirs"                              # first time: ours
+    elif [ -f "$prev" ]; then
+        cmp -s "$theirs" "$prev" && cp "$ours" "$theirs"  # no pick since: ours
+    elif [ -n "$PREV_COMMIT" ] && git -C "$SCRIPT_DIR" show "$PREV_COMMIT:$3" 2>/dev/null | cmp -s - "$theirs"; then
+        cp "$ours" "$theirs"                              # same, judged by the old commit
+    fi
+    cp "$ours" "$prev"
+}
 for f in "$SCRIPT_DIR"/state/*; do
-    [ -e "$STATE_DIR/$(basename "$f")" ] || cp "$f" "$STATE_DIR/"
+    generated "$f" "$(basename "$f")" "state/$(basename "$f")"
 done
-[ -e "$STATE_DIR/dunstrc" ] || cp "$SHARE_DIR/dunst/dunstrc" "$STATE_DIR/dunstrc"
+generated "$SHARE_DIR/dunst/dunstrc" dunstrc share/dunst/dunstrc
 
 # Session environment ($CONFIG_DIR/env, just copied) is sourced by
 # mango-session, the login wrapper the mangowc package's session entry runs
