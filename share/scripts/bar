@@ -39,7 +39,17 @@ done
 
 case "${1:-restart}" in
     start)   exec qs -p "$P" -d -n ;;
-    restart) qs -p "$P" kill 2>/dev/null; sleep 0.5; exec qs -p "$P" -d -n ;;
+    restart)
+        # kill every instance of this config and wait until the last one is
+        # gone: an instance can take a second to exit, `qs kill` reaches one
+        # at a time and can hang on a busy one, and `-n` only sees instances
+        # still registered, so a fixed half second stacked bars on each other
+        for _ in $(seq 1 25); do
+            pgrep -u "$(id -u)" -f "^qs -p $P -d -n\$" >/dev/null 2>&1 || break
+            timeout 5 qs -p "$P" kill >/dev/null 2>&1
+            sleep 0.2
+        done
+        exec qs -p "$P" -d -n ;;
     log)     exec qs -p "$P" log ;;
     *)       exec qs -p "$P" "$@" ;;
 esac

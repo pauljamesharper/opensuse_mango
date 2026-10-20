@@ -39,8 +39,23 @@ Popout {
     // follows along, so an early open just shows what's scanned so far
     // nwg-displays only speaks sway/Hyprland and quits on mango: the
     // Displays action stands in for it
-    readonly property var apps: DesktopEntries.applications.values.filter(
-        a => !a.noDisplay && !/^nwg-displays/.test(a.id))
+    // quickshell fills the application list in the background after start,
+    // one entry at a time. Bound directly, every arrival re-ran the search
+    // and rebuilt the grid: quadratic in the number of apps, 18 s of main
+    // thread for 570 .desktop files, the bar undrawn and deaf to ipc the
+    // whole time. Coalesced here: the list is taken once the arrivals pause.
+    property var apps: []
+    Connections {
+        target: DesktopEntries.applications
+        function onValuesChanged() { appsRefresh.restart() }
+    }
+    Timer {
+        id: appsRefresh
+        interval: 150
+        onTriggered: root.apps = DesktopEntries.applications.values.filter(
+            a => !a.noDisplay && !/^nwg-displays/.test(a.id))
+    }
+    Component.onCompleted: appsRefresh.start()
     readonly property var results: search(apps, actions, query, chip, history)
 
     // name/keywords feed the same search as apps; run is what Enter does
