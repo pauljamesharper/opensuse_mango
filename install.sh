@@ -451,8 +451,22 @@ fi
 LIVE=false
 if [ "$ONLY_CONFIG" = true ] && [ -n "${WAYLAND_DISPLAY:-}" ] && pgrep -x -u "$USER" mango >/dev/null 2>&1; then
     LIVE=true
-    "$SHARE_DIR/scripts/mango-ipc" dispatch reload_config >/dev/null 2>&1 || warn "mango did not reload config.conf; Super + Shift + r"
+    # The bar first, on the new files, and wait until it answers: mango's
+    # reload below runs the exec-once lines again (0.14), whose `bar start`
+    # is a no-op only once this bar is registered. Started side by side
+    # they raced to two bars.
+    oldbar=" $(pgrep -x -u "$USER" qs | tr '\n' ' ')"
     ("$SHARE_DIR/scripts/bar" restart >/dev/null 2>&1 &)
+    for _ in $(seq 1 50); do
+        newbar=""
+        for p in $(pgrep -x -u "$USER" qs); do
+            case "$oldbar" in *" $p "*) ;; *) newbar=$p ;; esac
+        done
+        [ -n "$newbar" ] && qs -p "$SHARE_DIR/quickshell" ipc show >/dev/null 2>&1 && break
+        sleep 0.2
+    done
+    sleep 1
+    "$SHARE_DIR/scripts/mango-ipc" dispatch reload_config >/dev/null 2>&1 || warn "mango did not reload config.conf; Super + Shift + r"
 fi
 
 # Done
