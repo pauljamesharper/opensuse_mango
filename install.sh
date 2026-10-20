@@ -136,7 +136,7 @@ PACKAGES_AUDIO=(
 PACKAGES_UTILITIES=(
     avahi-daemon acpi acpid upower
     fd-find xdg-user-dirs-gtk
-    loupe fastfetch
+    butterview fastfetch
     gawk curl wget
 )
 
@@ -248,7 +248,7 @@ msg "Setting up configuration..."
 rm -rf "$SHARE_DIR"
 mkdir -p "$SHARE_DIR"
 cp -r "$SCRIPT_DIR"/share/* "$SHARE_DIR"/ || die "Failed to copy the setup's files"
-chmod +x "$SHARE_DIR"/scripts/*
+chmod +x "$SHARE_DIR"/scripts/* "$SHARE_DIR"/butterview/wallpaper
 
 # The user's files, dpkg's way. "Never edited" is known from the copy of
 # what was shipped last time, kept in the state folder.
@@ -350,6 +350,15 @@ xdg-user-dirs-update
 # thunar handles folders: the bar's wallpaper picker opens one via xdg-open,
 # and with no default set it falls to whichever .desktop sorts first
 command -v xdg-mime >/dev/null && xdg-mime default thunar.desktop inode/directory
+# butterview opens images (double-click in thunar, xdg-open from the scripts)
+command -v xdg-mime >/dev/null && xdg-mime default butterview.desktop \
+    image/jpeg image/png image/gif image/webp image/avif image/jxl image/tiff image/bmp image/svg+xml
+# butterview's "set as wallpaper" key goes through the bar, so the desktop
+# is re-themed as well; a hook of the user's own is left alone
+if [ ! -e ~/.config/butterview/wallpaper ] || [ -L ~/.config/butterview/wallpaper ]; then
+    mkdir -p ~/.config/butterview
+    ln -sfn "$SHARE_DIR/butterview/wallpaper" ~/.config/butterview/wallpaper
+fi
 mkdir -p ~/Screenshots
 
 # Drop quickstart cheatsheet in $HOME (user can delete once read)
