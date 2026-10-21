@@ -1,15 +1,10 @@
 import QtQuick
-import Quickshell
 
-// Toggle pill for the popups' quick-settings grids: filled = on.
-// Left click runs modelData.run. Right-click launches modelData.alt
-// (a full external tool — closeFn shuts the popup first) or calls
-// modelData.altFn (an in-panel action). Scroll goes to modelData.onScroll.
+// Toggle pill for the tweaks grids: filled = on, click runs modelData.run.
 // Width defaults to a 2-column grid; override it for other grids.
 Rectangle {
     id: pill
     required property var modelData
-    property var closeFn: null
     readonly property bool on: modelData.active === true
 
     width: (parent.width - 6) / 2
@@ -28,8 +23,7 @@ Rectangle {
         Txt {
             anchors.verticalCenter: parent.verticalCenter
             text: pill.modelData.icon
-            color: pill.modelData.alert ? Theme.red
-                 : pill.on ? Theme.selfg : Theme.cyan
+            color: pill.on ? Theme.selfg : Theme.cyan
             font.pixelSize: 15
             Behavior on color { ColorAnimation { duration: 250 } }
         }
@@ -46,19 +40,8 @@ Rectangle {
         id: pillMa
         anchors.fill: parent
         hoverEnabled: true
-        acceptedButtons: Qt.LeftButton | Qt.RightButton
-        onClicked: m => {
-            if (m.button === Qt.RightButton) {
-                if (pill.modelData.alt) {           // external tool
-                    if (pill.closeFn) pill.closeFn()
-                    Quickshell.execDetached(pill.modelData.alt)
-                } else if (pill.modelData.altFn) {  // in-panel action
-                    pill.modelData.altFn()
-                }
-            } else {
-                pill.modelData.run()
-            }
-        }
-        onWheel: w => pill.modelData.onScroll?.(w.angleDelta.y > 0 ? 1 : -1)
+        onClicked: pill.modelData.run()
+        // the wheel stops here, so the pane doesn't scroll under the pill
+        onWheel: {}
     }
 }

@@ -6,11 +6,13 @@ Rectangle {
     id: root
 
     property string icon: ""
-    property color iconColor: Theme.accent
+    // a warning pill: red fill, icon and label in the background color
+    property bool alert: false
+    property color iconColor: alert ? Theme.bg : Theme.accent
     // some glyphs (e.g. Font Logos ) are missing from JetBrainsMono NF here
     property string iconFont: Theme.fontFamily
     property string label: ""
-    property color labelColor: Theme.fg
+    property color labelColor: alert ? Theme.bg : Theme.fg
     property bool interactive: true
     readonly property bool hovered: mouse.containsMouse
 
@@ -30,7 +32,8 @@ Rectangle {
     implicitHeight: Theme.moduleHeight
     implicitWidth: row.implicitWidth + Math.round(18 * Theme.barScale)
     radius: 8
-    color: mouse.containsMouse && interactive ? Qt.alpha(Theme.fg, 0.14) : Qt.alpha(Theme.fg, 0.07)
+    color: alert ? Theme.red
+         : mouse.containsMouse && interactive ? Qt.alpha(Theme.fg, 0.14) : Qt.alpha(Theme.fg, 0.07)
     // tactile press feedback — slow-starting apps otherwise make a click
     // feel like it didn't register
     scale: mouse.pressed && interactive ? 0.9 : 1

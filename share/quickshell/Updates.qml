@@ -2,14 +2,10 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Pending-updates indicator, presence-gated: hidden at zero, an icon +
-// count pill when apt has upgrades. The check is root-free and lock-free
-// (simulated dist-upgrade), run hourly — this is Debian, updates trickle
-// in — and the moment the upgrade terminal finishes; middle click
-// re-checks now (after an upgrade run from your own terminal, say). The
-// count is only as fresh as the last `apt update` — the upgrade terminal
-// runs one, and APT::Periodic::Update-Package-Lists "1" makes the system
-// do it daily.
+// Pending-updates pill, hidden at zero. The check is a root-free,
+// lock-free simulated dist-upgrade, run hourly and the moment the upgrade
+// terminal finishes; middle click re-checks now. The count is as fresh as
+// the last `apt update` (the upgrade terminal runs one).
 BarModule {
     id: root
 

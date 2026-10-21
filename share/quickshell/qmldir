@@ -20,7 +20,6 @@ Tray Tray.qml
 Clock Clock.qml
 CalendarPopup CalendarPopup.qml
 Launcher Launcher.qml
-PowerButton PowerButton.qml
 Screenshot Screenshot.qml
 CapsLock CapsLock.qml
 MicMute MicMute.qml
@@ -50,3 +49,8 @@ ChordField ChordField.qml
 Txt Txt.qml
 SectionLabel SectionLabel.qml
 Toggle Toggle.qml
+Btn Btn.qml
+ListRow ListRow.qml
+Keycap Keycap.qml
+EditorPanel EditorPanel.qml
+Verb Verb.qml

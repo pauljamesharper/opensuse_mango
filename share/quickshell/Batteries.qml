@@ -3,19 +3,13 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Everything with a battery: the laptop's own, wireless mice and keyboards
-// (Logitech receivers, Bluetooth), headsets, controllers — whatever UPower
-// knows about. Read from `upower -d`, not Quickshell's UPower service:
-// many mice report only a coarse level (full/high/low/critical) with a
-// percentage UPower itself marks "should be ignored", and the service
-// shows that fake percentage without the level. Polled every 2 minutes
-// (and on demand, when the command menu opens).
-//
-// Also the two things that must happen with no popup open:
-//   - one notification when a device runs low (again only after it
-//     recovers), so a dying mouse doesn't surprise you
-//   - on a laptop at 20% and falling, switch to the power-saver profile;
-//     back to what it was once it's charging
+// Everything UPower knows with a battery: the laptop's, wireless mice and
+// keyboards, headsets, controllers. Read from `upower -d`, not Quickshell's
+// UPower service: many mice report only a coarse level, with a percentage
+// UPower marks "should be ignored" that the service shows as real. Polled
+// every 2 minutes and when the command menu opens. With no popup open it
+// also warns once when a device runs low, and puts a laptop at 20% on the
+// power-saver profile until it charges.
 Singleton {
     id: root
 

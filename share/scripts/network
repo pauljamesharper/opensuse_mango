@@ -18,6 +18,6 @@ fi
 if running; then
     qs -p "$P" kill
 else
-    # mango floats it (config.conf windowrule for org.quickshell)
+    # mango floats it (defaults.conf windowrule for org.quickshell)
     exec qs -p "$P" -d -n
 fi

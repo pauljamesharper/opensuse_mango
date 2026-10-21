@@ -1,15 +1,12 @@
 import QtQuick
 import Quickshell
 
-// Active connection indicator. The icon says the transport (Wi-Fi bars
-// follow signal strength, ethernet, VPN shield) and updates the moment
-// NetworkManager changes anything (Sys follows `nmcli monitor`). Two states
-// get words, not just a color: "sign in" when the network wants a login
-// page first (hotel, café) and "no internet" when it's connected to
-// something that doesn't reach it — both need NetworkManager's
-// connectivity check on (Sys.connectivity).
-// Click: the login page while "sign in" shows, the quickshell network app
-// otherwise. Right click: nm-connection-editor for the deep settings.
+// Active connection indicator. The icon shows the transport (Wi-Fi bars
+// follow the signal, ethernet, VPN shield) and follows `nmcli monitor`.
+// "sign in" shows when the network wants a login page first, "no internet"
+// when it doesn't reach the internet; both need NetworkManager's
+// connectivity check. Click opens the login page while "sign in" shows,
+// the network app otherwise; right click opens nm-connection-editor.
 BarModule {
     id: root
 

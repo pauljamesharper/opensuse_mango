@@ -1,6 +1,6 @@
 #!/bin/sh
-# idle — swayidle with the setup's policy (config.conf's exec-once; the
-# command menu's "Lock on idle" tile restarts it):
+# idle — swayidle with the setup's policy (started from autostart.conf;
+# the command menu's "Lock on idle" tile restarts it):
 #   15 min idle   screen off (wlopm), on again at the first input
 #   lock-idle = 1 lock the screen 30 s before that, and before the
 #                 machine sleeps

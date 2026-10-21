@@ -3,17 +3,14 @@ import Quickshell
 import Quickshell.Io
 
 // Weather: condition glyph + temperature from wttr.in (no API key),
-// refreshed every 30 minutes. Click for the 3-day forecast card — same
-// fetch, no extra requests. Hidden until the first successful fetch, so
-// an offline boot just shows no weather.
+// refreshed every 30 minutes; click for the 3-day forecast card from the
+// same fetch. Hidden until the first successful fetch.
 //
-// Location: by default wttr.in locates by IP — which reports the VPN exit
-// node's weather when a VPN is up. Pin it from the forecast card's field
-// (right-click jumps there), which writes a city/zip to weather-location
-// in the config folder (plain text, e.g. "Cleveland" or 44101).
-//
-// Units: auto — imperial locales get °F/mph, everyone else °C/km/h.
-// The card's °F/°C pills write a single "f" or "c" to weather-units.
+// wttr.in locates by IP, which is the VPN exit node while a VPN is up.
+// The card's field (right click jumps there) pins a city or zip in
+// weather-location in the state folder (plain text, e.g. Berlin or 10001).
+// Units follow the locale: imperial gets °F/mph, the rest °C/km/h; the
+// card's °F/°C pills write "f" or "c" to weather-units.
 BarModule {
     id: root
 
@@ -41,17 +38,9 @@ BarModule {
     FileView {
         path: Theme.stateDir + "/weather-location"
         watchChanges: true
-        onFileChanged: {
-            reload()
-            fetch.running = false
-            fetch.running = true
-        }
+        onFileChanged: { reload(); root.refetch() }
         onLoaded: root.location = text().trim()
-        onLoadFailed: {
-            root.location = ""
-            fetch.running = false
-            fetch.running = true
-        }
+        onLoadFailed: { root.location = ""; root.refetch() }
     }
 
     property var lastJson: null
@@ -88,6 +77,7 @@ BarModule {
     }
 
     property string _buf: ""
+    function refetch() { fetch.running = false; fetch.running = true }
     Process {
         id: fetch
         command: ["sh", "-c",
@@ -156,11 +146,11 @@ BarModule {
         interval: 30 * 60 * 1000
         repeat: true
         running: true
-        onTriggered: { fetch.running = false; fetch.running = true }
+        onTriggered: root.refetch()
     }
     Timer {
         id: retry
         interval: 3 * 60 * 1000
-        onTriggered: { fetch.running = false; fetch.running = true }
+        onTriggered: root.refetch()
     }
 }

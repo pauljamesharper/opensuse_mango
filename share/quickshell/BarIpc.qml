@@ -3,11 +3,10 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// One place for the bar's `qs ipc call` names. Every screen has its own
-// bar, and so its own copy of each popup, but an IPC name can be registered
-// only once: with the handlers inside the popups, the first bar's copy
-// answered whichever monitor you were on. Registered once here and passed
-// on, the popup on the focused output answers (Popout.qml's ipcNames).
+// The bar's `qs ipc call` names. An IPC name can be registered only once,
+// but every screen's bar has its own copy of each popup, so the names live
+// here and each call is passed on: the copy on the focused output answers
+// (Popout.qml's ipcNames).
 Singleton {
     id: root
 

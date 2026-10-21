@@ -3,13 +3,10 @@ import Quickshell
 import Quickshell.Io
 
 // Wallpaper tab of the settings panel: a thumbnail grid of the config
-// folder's wallpaper/. `wallpapers random` / `set <path>` over IPC work
-// with the panel closed: it opens on this tab for the extraction (the
-// canvas renders only inside a visible window).
-// Picking one extracts a palette from the image right here (hidden Image →
-// Canvas histogram → HSL-derived semantic colors) and hands wallpaper +
-// palette to scripts/wallpaper-theme, which re-themes the whole desktop.
-// No pywal/wallust needed — quickshell is the color engine.
+// folder's wallpaper/. Picking one extracts a palette from the image
+// (Canvas histogram, then HSL-derived semantic colors) and hands both to
+// scripts/wallpaper-theme, which re-themes the desktop. The canvas draws
+// only in a visible window, so IPC random / set opens this tab first.
 Item {
     id: root
     required property var popup
@@ -17,6 +14,8 @@ Item {
     property var wallpapers: []
     property string applyingPath: ""
     property bool randomPending: false
+    // thumbnails decode at the size they show, in device pixels
+    readonly property real thumbScale: popup.s * Screen.devicePixelRatio
 
     // re-scan the wallpaper dir on every open, so new files just show up;
     // the grid takes key focus so arrows/Enter work without the mouse
@@ -105,8 +104,7 @@ Item {
             }
         }
 
-        // "open folder" row above the grid (PR #5 on mangowc-setup, by
-        // abdrezzakboumediene) — mouse or `o`
+        // "open folder" row above the grid: mouse or `o`
         Rectangle {
             id: folderRow
             anchors.top: parent.top
@@ -122,26 +120,22 @@ Item {
             Row {
                 anchors.centerIn: parent
                 spacing: 8
-                Text {
+                Txt {
+                    anchors.verticalCenter: parent.verticalCenter
                     text: "󰉋"
                     color: Theme.accent
-                    font.family: Theme.fontFamily
                     font.pixelSize: 14
-                    anchors.verticalCenter: parent.verticalCenter
                 }
-                Text {
+                Txt {
+                    anchors.verticalCenter: parent.verticalCenter
                     text: "Open wallpaper folder"
-                    color: Theme.fg
-                    font.family: Theme.fontFamily
                     font.pixelSize: 12
-                    anchors.verticalCenter: parent.verticalCenter
                 }
-                Text {
+                Txt {
+                    anchors.verticalCenter: parent.verticalCenter
                     text: "o"
                     color: Qt.alpha(Theme.fg, 0.5)
-                    font.family: Theme.fontFamily
                     font.pixelSize: 10
-                    anchors.verticalCenter: parent.verticalCenter
                 }
             }
 
@@ -164,13 +158,11 @@ Item {
             clip: true
             cellWidth: 176
             cellHeight: 103
-            cacheBuffer: 4000
+            cacheBuffer: cellHeight * 2
             model: root.wallpapers
 
             // keyboard: arrows/hjkl move, Enter/Space applies, o opens the
-            // folder, Escape closes
-            // (handled here: with the grid focused the event doesn't reach
-            // Popout's own Escape handler)
+            // folder, Escape closes (the focused grid gets it before Popout)
             focus: true
             keyNavigationWraps: true
             highlightFollowsCurrentItem: true
@@ -220,7 +212,7 @@ Item {
                         anchors.fill: parent
                         anchors.margins: 1
                         source: "file://" + cell.modelData
-                        sourceSize.width: 340
+                        sourceSize: Qt.size(grid.cellWidth * root.thumbScale, grid.cellHeight * root.thumbScale)
                         fillMode: Image.PreserveAspectCrop
                         asynchronous: true
                         clip: true
@@ -352,13 +344,11 @@ Item {
         const bgL = art ? Math.min(Math.max(bgC.l, 0.09), 0.2)
                         : Math.min(Math.max(bgC.l * 0.7, 0.1), 0.17)
 
-        // beacon: a tiny bright hue-distinct cluster reads as a light
-        // source (lamp, neon, sunset sliver) — semantically the image's
-        // accent even though a histogram barely sees it. Scanned over all
-        // bins: a beacon is exactly the thing too small for the top-40.
-        // Bounds: bright against the ground, some color (glows run
-        // desaturated), and rare — common enough and the normal primary
-        // pass already owns it.
+        // beacon: a small bright cluster of a distinct hue (lamp, neon,
+        // sunset sliver) is the image's accent though the histogram
+        // barely sees it, so all bins are scanned, not the top 40. Bright
+        // against the ground, some color, and rare: a common one is
+        // already the primary pass's pick.
         let bea = null
         {
             const cand = []

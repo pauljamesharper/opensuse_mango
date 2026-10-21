@@ -5,7 +5,7 @@
 #   lock style X    set it (the next lock uses it)
 # The default style is rain on Butterbian, blur elsewhere.
 SHARE="$(dirname "$(dirname "$(readlink -f "$0")")")"
-# the chosen style is a setting, kept outside the config folder (see scripts/bar)
+# the chosen style is a setting, kept in the state folder
 S="${XDG_STATE_HOME:-$HOME/.local/state}/mango"
 P="$SHARE/quickshell-lock"
 

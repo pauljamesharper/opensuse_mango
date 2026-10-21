@@ -2,13 +2,11 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 
-// Shared shell for every bar popup — Wayland edition. A full-screen
-// transparent layer-shell overlay (the click catcher) with the styled
-// card anchored under its bar item. Clicking anywhere outside the card
-// closes it; Escape too. The window takes exclusive keyboard focus only
-// while visible (an xdg-popup off a layer-shell panel never gets key
-// events, which is why this is a layer surface and not PopupWindow).
-// The same card chrome and behavior as the X11 ports' Popout.
+// Shared shell for every bar popup: a full-screen transparent layer-shell
+// overlay (the click catcher) with the card anchored under its bar item.
+// A click outside the card or Escape closes it. It takes exclusive
+// keyboard focus only while visible; an xdg-popup off a layer-shell panel
+// never gets key events, so this is a layer surface, not a PopupWindow.
 PanelWindow {
     id: root
     function takeFocus() { inner.forceActiveFocus() }
@@ -63,10 +61,9 @@ PanelWindow {
         }
     }
 
-    // where the anchor sits on its own output. mapToGlobal answers in the
-    // layout's coordinates, which include the output's position: with a
-    // second monitor to the left, everything landed that monitor's width
-    // too far right. This overlay covers one output, so take its origin off.
+    // where the anchor sits on its own output: mapToGlobal answers in the
+    // layout's coordinates, which include the output's position, and this
+    // overlay covers one output, so its origin comes off
     property real ax: 0
     property real ay: 0
 
@@ -114,11 +111,9 @@ PanelWindow {
         width: root.cardWidth
         height: root.cardHeight
         // Centered popups (launcher, keybinds, power) look like mango's
-        // floating windows, the network app among them: its focus border
-        // (accent, the border-width slider's width) and corner radius, solid.
-        // Drop-downs stay light: thin border, rounder, and a touch
-        // translucent while mango blurs behind layers so the card frosts
-        // over the desktop (solid again when blur is off).
+        // floating windows: accent border at the border-width slider's
+        // width, the window radius, solid. Drop-downs get a thin border,
+        // rounder corners, and frost over the desktop while blur is on.
         radius: root.centered ? Theme.barRadius : 12
         color: !root.centered && Wm.blur ? Qt.alpha(Theme.bg, 0.86) : Theme.bg
         border.width: root.centered ? Wm.borderpx : 1

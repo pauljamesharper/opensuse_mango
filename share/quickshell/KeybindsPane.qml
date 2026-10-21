@@ -2,20 +2,13 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Keybinds tab of the settings panel (SettingsPopup): every bind in the
-// WM config, grouped by its sections and laid out in columns. Type to
-// filter; the chips narrow it to launchers (run=) or mango's own actions
-// (do=). Click a row to edit it in the panel below: record a chord (mango
-// lets go of its grabs meanwhile), change the label and what it does,
-// Save; "+" on a section adds a bind; right-click a row to open the file
-// at that line instead (local.conf rows only open: that file is edited
-// by hand). Every write goes through `keybinds check` first, so a bad
-// bind is refused with its reason and the file stays as it was. Saves
-// pile up until the panel's Apply reloads mango with them. Rows come
-// from scripts/keybinds, re-read after every change. Nothing here is
-// WM-specific: each setup's scripts/keybinds reads its own config format
-// and answers the same verbs (rows, open, get, set, add, delete, check,
-// apply).
+// Keybinds tab of the settings panel: every bind, grouped by its section
+// in columns. Type to filter; the chips narrow it to launchers (run=) or
+// mango's own actions (do=). Click a row to edit it in the panel below,
+// "+" on a section adds a bind, right-click opens the file at that line
+// (local.conf rows only open: that file is edited by hand).
+// scripts/keybinds lists the rows and checks every write first, so a bad
+// bind is refused with its reason; saves wait for the panel's Apply.
 Item {
     id: root
     required property var popup     // the SettingsPopup: closed around apply
@@ -43,8 +36,6 @@ Item {
 
     property var rows: []   // {section, keys: [["Super", "Q"], ...], desc, line, kind, cmd}
     property string query: ""
-    // the unfiltered layout's height, so the card doesn't shrink as you type
-    property real fullHeight: 0
 
     // the bind in the panel: {line, section, isNew}; the fields hold the rest
     property var editing: null
@@ -55,11 +46,10 @@ Item {
     readonly property string tool: Theme.shareDir + "/scripts/keybinds"
 
     readonly property int colSpacing: 24
-    readonly property real innerWidth: width
     readonly property int columnCount:
-        Math.max(1, Math.floor((innerWidth + colSpacing) / (440 + colSpacing)))
+        Math.max(1, Math.floor((width + colSpacing) / (440 + colSpacing)))
     readonly property real columnWidth:
-        (innerWidth - (columnCount - 1) * colSpacing) / columnCount
+        (width - (columnCount - 1) * colSpacing) / columnCount
     readonly property int keysWidth: 170
     readonly property var columns: layout(rows, query, kindFilter, columnCount, collapseGen)
 
@@ -75,28 +65,11 @@ Item {
         editing = null
     }
 
-    // one verb at a time; the exit code rides on the first output line
-    Process {
-        id: proc
-        property var done: null
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const f = proc.done
-                proc.done = null
-                const i = text.indexOf("\n")
-                if (f) f(parseInt(text.slice(0, i)), text.slice(i + 1))
-            }
-        }
-    }
-    function run(args, cb) {
-        proc.done = cb
-        proc.command = ["sh", "-c", 'o=$("$0" "$@" 2>&1); r=$?; printf "%s\\n%s" "$r" "$o"', root.tool].concat(args)
-        proc.running = true
-    }
+    Verb { id: verb }
     function setStatus(s, bad) { status = s; statusBad = bad }
 
     function openEditor(line, section) {
-        run(["get", String(line)], (rc, out) => {
+        verb.run(root.tool, ["get", String(line)], (rc, out) => {
             const f = out.replace(/\n$/, "").split("\t")
             if (rc !== 0 || f.length < 5)
                 return
@@ -140,9 +113,9 @@ Item {
         }
         const args = (e.isNew ? ["add", e.section] : ["set", String(e.line)])
             .concat([ck[0], ck[1], descField.text.trim(), editKind, valueField.text.trim()])
-        run(args, (rc, out) => {
+        verb.run(root.tool, args, (rc, out) => {
             if (rc !== 0) {
-                setStatus(out.trim().replace(/^keybinds-gen: \S+:\d+: /gm, ""), true)
+                setStatus(out.trim(), true)
                 return
             }
             dirty = true
@@ -155,7 +128,7 @@ Item {
     function remove() {
         const e = editing
         if (!e || e.isNew) { cancelEdit(); return }
-        run(["delete", String(e.line)], (rc, out) => {
+        verb.run(root.tool, ["delete", String(e.line)], (rc, out) => {
             if (rc !== 0) { setStatus(out.trim(), true); return }
             dirty = true
             editing = null
@@ -346,23 +319,15 @@ Item {
             spacing: 4
             Repeater {
                 model: root.kinds
-                Rectangle {
-                    id: chip
+                Btn {
                     required property string modelData
                     required property int index
-                    readonly property bool active: root.kindFilter === index
+                    text: modelData
+                    active: root.kindFilter === index
                     height: 22
-                    width: chipText.implicitWidth + 18
                     radius: 11
-                    color: active ? Theme.accent : chipMa.containsMouse ? Qt.alpha(Theme.fg, 0.14) : Qt.alpha(Theme.fg, 0.06)
-                    Txt { id: chipText; anchors.centerIn: parent; text: chip.modelData; color: chip.active ? Theme.bg : Qt.alpha(Theme.fg, 0.8); font.bold: chip.active }
-                    MouseArea {
-                        id: chipMa
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: { root.kindFilter = chip.index; search.forceActiveFocus() }
-                    }
+                    fadeMs: 0
+                    onClicked: { root.kindFilter = index; search.forceActiveFocus() }
                 }
             }
         }
@@ -382,132 +347,66 @@ Item {
     }
 
     // --- the editor panel, under the list while a bind is open ---
-    Rectangle {
+    EditorPanel {
         id: editorPanel
-        visible: root.editing !== null
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: edCol.implicitHeight + 24
-        radius: 10
-        color: Qt.alpha(Theme.fg, 0.05)
-        border.width: 1
-        border.color: Qt.alpha(Theme.accent, 0.3)
+        editing: root.editing
+        title: !root.editing ? ""
+            : root.editing.isNew ? "New bind in " + root.editing.section
+            : "Editing: " + root.editing.title + "  ·  line " + root.editing.line
+        status: root.status
+        statusBad: root.statusBad
+        onSave: root.save()
+        onCancel: root.cancelEdit()
+        onRemove: root.remove()
 
-        Column {
-            id: edCol
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.margins: 12
+        Row {
             spacing: 8
-
-            // which bind this is, so a wrong click shows before you type
-            Txt {
-                text: !root.editing ? ""
-                    : root.editing.isNew ? "New bind in " + root.editing.section
-                    : "Editing: " + root.editing.title + "  ·  line " + root.editing.line
-                color: Theme.accent
-                font.bold: true
-                font.pixelSize: 12
-                elide: Text.ElideRight
-                width: parent.width
+            EditorPanel.Lbl { text: "Keys" }
+            ChordField {
+                id: chordField
+                onAccepted: root.save()
+                onEscaped: root.cancelEdit()
             }
+        }
 
-            Row {
-                spacing: 8
-                Txt {
-                    width: 110
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "Keys"
-                    color: Qt.alpha(Theme.fg, 0.7)
-                }
-                ChordField {
-                    id: chordField
-                    onAccepted: root.save()
-                    onEscaped: root.cancelEdit()
-                }
+        Row {
+            spacing: 8
+            EditorPanel.Lbl { text: "Description" }
+            EditField {
+                id: descField
+                width: editorPanel.innerWidth - 118
+                placeholder: "what the help should say (optional; ! first pins it)"
+                onAccepted: root.save()
+                onEscaped: root.cancelEdit()
             }
+        }
 
+        Row {
+            spacing: 8
+            EditorPanel.Lbl { text: "Does" }
             Row {
-                spacing: 8
-                Txt {
-                    width: 110
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "Description"
-                    color: Qt.alpha(Theme.fg, 0.7)
-                }
-                EditField {
-                    id: descField
-                    width: edCol.width - 118
-                    placeholder: "what the help should say (optional; ! first pins it)"
-                    onAccepted: root.save()
-                    onEscaped: root.cancelEdit()
-                }
-            }
-
-            Row {
-                spacing: 8
-                Txt {
-                    width: 110
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "Does"
-                    color: Qt.alpha(Theme.fg, 0.7)
-                }
-                Row {
-                    spacing: 4
-                    anchors.verticalCenter: parent.verticalCenter
-                    Repeater {
-                        model: [["run", "run a command"], ["do", "mango action"]]
-                        Rectangle {
-                            required property var modelData
-                            readonly property bool on: root.editKind === modelData[0]
-                            height: 24
-                            width: kt.implicitWidth + 20
-                            radius: 12
-                            color: on ? Theme.accent : kindMa.containsMouse ? Qt.alpha(Theme.fg, 0.14) : Qt.alpha(Theme.fg, 0.06)
-                            Txt { id: kt; anchors.centerIn: parent; text: parent.modelData[1]; color: parent.on ? Theme.bg : Qt.alpha(Theme.fg, 0.8); font.bold: parent.on }
-                            MouseArea {
-                                id: kindMa
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: { root.editKind = parent.modelData[0]; valueField.input.forceActiveFocus() }
-                            }
-                        }
+                spacing: 4
+                anchors.verticalCenter: parent.verticalCenter
+                Repeater {
+                    model: [["run", "run a command"], ["do", "mango action"]]
+                    Btn {
+                        required property var modelData
+                        text: modelData[1]
+                        active: root.editKind === modelData[0]
+                        padding: 20
+                        radius: 12
+                        fadeMs: 0
+                        onClicked: { root.editKind = modelData[0]; valueField.input.forceActiveFocus() }
                     }
                 }
-                EditField {
-                    id: valueField
-                    onAccepted: root.save()
-                    onEscaped: root.cancelEdit()
-                    width: edCol.width - 118 - 8 - 230
-                    placeholder: root.editKind === "run" ? "command line, e.g. firefox-esr -private-window  (terminal programs: kitty -e nvim)"
-                                                         : "action and its arguments as keybinds.conf writes them, e.g. focusstack,next"
-                }
             }
-
-            Row {
-                spacing: 8
-                EditButton { label: "Save"; primary: true; onClicked: root.save() }
-                EditButton { label: "Cancel"; onClicked: root.cancelEdit() }
-                EditButton {
-                    visible: root.editing && !root.editing.isNew
-                    label: "Delete"
-                    ink: Theme.red
-                    onClicked: root.remove()
-                }
-                // why a save was refused, right where Save is
-                Txt {
-                    anchors.verticalCenter: parent.verticalCenter
-                    leftPadding: 8
-                    width: edCol.width - 300
-                    elide: Text.ElideRight
-                    visible: root.status !== ""
-                    text: root.status
-                    color: root.statusBad ? Theme.red : Qt.alpha(Theme.fg, 0.7)
-                    font.bold: root.statusBad
-                }
+            EditField {
+                id: valueField
+                onAccepted: root.save()
+                onEscaped: root.cancelEdit()
+                width: editorPanel.innerWidth - 118 - 8 - 230
+                placeholder: root.editKind === "run" ? "command line, e.g. firefox-esr -private-window  (terminal programs: kitty -e nvim)"
+                                                     : "action and its arguments as keybinds.conf writes them, e.g. focusstack,next"
             }
         }
     }
@@ -526,12 +425,9 @@ Item {
         clip: true
 
         onContentHeightChanged: {
-            if (root.query === "")
-                root.fullHeight = contentHeight
             contentY = Math.max(0, Math.min(contentY, contentHeight - height))
-            // first measure: fold the default sections (only those — a
-            // list that doesn't fit scrolls; folding everything on small
-            // screens hid the binds people came to read)
+            // first measure: fold the default sections only; a list that
+            // doesn't fit scrolls
             if (root._autoFolded === 0 && contentHeight > 0 && root.rows.length) {
                 root._autoFolded = 1
                 const c = Object.assign({}, root.collapsed)
@@ -579,16 +475,12 @@ Item {
                                     radius: 4
                                     color: titleMa.containsMouse ? Qt.alpha(Theme.fg, 0.06) : "transparent"
                                 }
-                                Txt {
-                                    id: secTitle
+                                SectionLabel {
                                     anchors.verticalCenter: parent.verticalCenter
-                                    leftPadding: 6
+                                    caps: true
+                                    topPadding: 0
                                     text: (section.modelData.folded ? "▸ " : "▾ ") + section.modelData.title
                                         + (section.modelData.folded ? "   " + section.modelData.hidden : "")
-                                    color: Theme.accent
-                                    font.bold: true
-                                    font.capitalization: Font.AllUppercase
-                                    font.letterSpacing: 1
                                 }
                                 MouseArea {
                                     id: titleMa
@@ -640,23 +532,7 @@ Item {
                                         Repeater {
                                             model: root.caps(bindRow.modelData.keys)
 
-                                            Rectangle {
-                                                id: cap
-                                                required property var modelData
-                                                height: 20
-                                                width: capText.implicitWidth + (modelData.cap ? 12 : 2)
-                                                radius: 4
-                                                color: modelData.cap ? Qt.alpha(Theme.fg, 0.08) : "transparent"
-                                                border.width: modelData.cap ? 1 : 0
-                                                border.color: Qt.alpha(Theme.fg, 0.16)
-
-                                                Txt {
-                                                    id: capText
-                                                    anchors.centerIn: parent
-                                                    text: cap.modelData.t
-                                                    color: cap.modelData.cap ? Theme.fg : Qt.alpha(Theme.fg, 0.4)
-                                                }
-                                            }
+                                            Keycap { required property var modelData; text: modelData.t; cap: modelData.cap }
                                         }
                                     }
 

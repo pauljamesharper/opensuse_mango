@@ -1,16 +1,12 @@
 import QtQuick
 import Quickshell.Services.Mpris
 
-// Now-playing (MPRIS). Hidden when nothing is playing. Click toggles
-// play/pause, scroll skips tracks, right click opens the now-playing
-// popup (art, seek, transport, player switcher), middle click dismisses
-// that player until it plays again or changes track — the "I'm watching
-// this video, stop telling me about it" gesture, which also clears a
-// player left paused for days. The bar pill stays
-// short — truncated title plus a progress underline when the track
-// reports a length (streams don't); full track info and exact times
-// live in the popup. Among multiple players the playing one wins;
-// the popup can pin a choice (dropped if that player exits).
+// Now playing (MPRIS), hidden when nothing plays. Click toggles play/pause,
+// scroll skips tracks, right click opens the popup (art, seek, transport,
+// player switcher), middle click dismisses that player until it plays
+// again or changes track. The pill is a truncated title plus a progress
+// underline when the track reports a length. The playing player wins;
+// the popup can pin one (dropped if that player exits).
 BarModule {
     id: root
 

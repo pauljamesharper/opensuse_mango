@@ -5,22 +5,19 @@ import Quickshell.Io
 
 // Tag state + control — mango backend. `mmsg watch all-monitors` streams
 // one JSON line per compositor state change (tags, focus, layout, title)
-// and emits a snapshot on connect, so this is the whole read side: no
-// polling, no WM patch. Actions go through `mmsg dispatch`. mmsg needs
+// and emits a snapshot on connect, so this is the whole read side, with
+// no polling. Actions go through `mmsg dispatch`. mmsg needs
 // MANGO_INSTANCE_SIGNATURE; scripts/mango-ipc fills it in when the bar
 // was started outside the compositor's environment.
 Singleton {
     id: root
 
-    property int seltags: 1
-    property int occtags: 0
-    property int urgtags: 0
-    property int tagCount: 9
-    property string title: ""
     property string monitor: ""     // focused output name (dispatch target)
+    // FileView watching a file, re-read whenever it changes
+    component StateFile: FileView { watchChanges: true; onFileChanged: reload() }
 
     // Tags are per monitor in mango, so every output has its own state and
-    // each bar shows its own (the properties above are the focused one's).
+    // each bar shows its own.
     property var mons: ({})   // name -> {seltags, occtags, urgtags, tagCount, title, layoutIndex}
     readonly property var _none: ({ seltags: 1, occtags: 0, urgtags: 0, tagCount: 9, title: "", layoutIndex: 0 })
     function of(name) { return mons[name] ?? mons[monitor] ?? _none }
@@ -29,46 +26,40 @@ Singleton {
     readonly property string ipc: Theme.shareDir + "/scripts/mango-ipc"
     function dispatch(cmd) { Quickshell.execDetached([ipc, "dispatch", cmd]) }
 
-    // --- layout: mirrors layouts[] in mango's src/layout/layout.h (symbol
-    // is what the IPC reports; name is what setlayout takes). mfact and
-    // nmaster flags mark the layouts whose arrange honors them. ---
+    // --- layout: mirrors layouts[] in mango's src/layout/layout.h. symbol
+    // is what the IPC reports, id what setlayout takes, name what the
+    // picker shows. mfact and nmaster mark the layouts that honor them. ---
     readonly property var layouts: [
-        { name: "tile",              symbol: "T",  glyph: "󰙀", mfact: true,  nmaster: true  },
-        { name: "scroller",          symbol: "S",  glyph: "󰕭", mfact: false, nmaster: false },
-        { name: "grid",              symbol: "G",  glyph: "󰝘", mfact: false, nmaster: false },
-        { name: "monocle",           symbol: "M",  glyph: "󰕮", mfact: false, nmaster: false },
-        { name: "deck",              symbol: "K",  glyph: "󱇙", mfact: true,  nmaster: true  },
-        { name: "center tile",       symbol: "CT", glyph: "󰕬", mfact: true,  nmaster: true  },
-        { name: "right tile",        symbol: "RT", glyph: "󰙀", mfact: true,  nmaster: true  },
-        { name: "vert scroller",     symbol: "VS", glyph: "󱒉", mfact: false, nmaster: false },
-        { name: "vert tile",         symbol: "VT", glyph: "󱒈", mfact: true,  nmaster: true  },
-        { name: "vert grid",         symbol: "VG", glyph: "󰕯", mfact: false, nmaster: false },
-        { name: "vert deck",         symbol: "VK", glyph: "󱇚", mfact: true,  nmaster: true  },
-        { name: "dwindle",           symbol: "DW", glyph: "󰕴", mfact: false, nmaster: false },
-        { name: "fair",              symbol: "F",  glyph: "󰕫", mfact: false, nmaster: false },
-        { name: "vert fair",         symbol: "VF", glyph: "󰪷", mfact: false, nmaster: false }
+        { name: "tile",          id: "tile",              symbol: "T",  glyph: "󰙀", mfact: true,  nmaster: true  },
+        { name: "scroller",      id: "scroller",          symbol: "S",  glyph: "󰕭", mfact: false, nmaster: false },
+        { name: "grid",          id: "grid",              symbol: "G",  glyph: "󰝘", mfact: false, nmaster: false },
+        { name: "monocle",       id: "monocle",           symbol: "M",  glyph: "󰕮", mfact: false, nmaster: false },
+        { name: "deck",          id: "deck",              symbol: "K",  glyph: "󱇙", mfact: true,  nmaster: true  },
+        { name: "center tile",   id: "center_tile",       symbol: "CT", glyph: "󰕬", mfact: true,  nmaster: true  },
+        { name: "right tile",    id: "right_tile",        symbol: "RT", glyph: "󰙀", mfact: true,  nmaster: true  },
+        { name: "vert scroller", id: "vertical_scroller", symbol: "VS", glyph: "󱒉", mfact: false, nmaster: false },
+        { name: "vert tile",     id: "vertical_tile",     symbol: "VT", glyph: "󱒈", mfact: true,  nmaster: true  },
+        { name: "vert grid",     id: "vertical_grid",     symbol: "VG", glyph: "󰕯", mfact: false, nmaster: false },
+        { name: "vert deck",     id: "vertical_deck",     symbol: "VK", glyph: "󱇚", mfact: true,  nmaster: true  },
+        { name: "dwindle",       id: "dwindle",           symbol: "DW", glyph: "󰕴", mfact: false, nmaster: false },
+        { name: "fair",          id: "fair",              symbol: "F",  glyph: "󰕫", mfact: false, nmaster: false },
+        { name: "vert fair",     id: "vertical_fair",     symbol: "VF", glyph: "󰪷", mfact: false, nmaster: false }
     ]
-    // setlayout wants the snake_case name; the table shows a spaced one
-    readonly property var layoutIds: ["tile", "scroller", "grid", "monocle", "deck",
-        "center_tile", "right_tile", "vertical_scroller", "vertical_tile",
-        "vertical_grid", "vertical_deck", "dwindle", "fair", "vertical_fair"]
-    property int layoutIndex: 0
 
-    // desktop tweaks. mango exposes no getters for these, and its setters
-    // are relative (setmfact +0.05, incnmaster +1) or config options
-    // (setoption gappih N), so the bar keeps the authoritative value: gaps
-    // from the mango-gaps state file (re-applied on start, like dwm's),
-    // mfact/nmaster from config.conf's defaults, then tracked locally.
+    // desktop tweaks. mango has no getters for these and its setters are
+    // relative (setmfact +0.05, incnmaster +1) or options (setoption
+    // gappih N), so the bar keeps the value: gaps from the mango-gaps state
+    // file (re-applied on start), mfact/nmaster from defaults.conf, then
+    // tracked locally.
     property int gaps: 5
     property int mfact: 55
     property int nmaster: 1
 
-    // effects: blur / shadows / animations toggles, plus border width and
-    // unfocused-window opacity sliders, all set live by the picker
-    // (setoption) and persisted to mango-effects so they survive a bar
-    // restart and a config reload (which resets setoption values). No
-    // file = config.conf's values, which these defaults mirror; nothing
-    // is pushed to the compositor until the user has touched a control.
+    // effects: blur / shadows / animations toggles plus border width and
+    // unfocused-window opacity sliders, set live (setoption) and persisted
+    // to mango-effects so they survive a bar restart and a config reload
+    // (which resets setoption values). No file = defaults.conf's values,
+    // which these mirror; nothing is pushed until a control is touched.
     property bool blur: false
     property bool shadows: true
     property bool animations: true
@@ -84,11 +75,9 @@ Singleton {
         dispatch("setoption,unfocused_opacity," + (unfocusedOpacity / 100).toFixed(2))
     }
     function persistEffects() {
-        Quickshell.execDetached(["sh", "-c",
-            "printf 'blur=%s\\nshadows=%s\\nanimations=%s\\nborderpx=%s\\nunfocused_opacity=%s\\n' "
-            + (blur ? 1 : 0) + " " + (shadows ? 1 : 0) + " " + (animations ? 1 : 0)
-            + " " + borderpx + " " + unfocusedOpacity
-            + " > '" + Theme.stateDir + "/mango-effects'"])
+        Theme.writeState("mango-effects", "blur=" + (blur ? 1 : 0) + "\nshadows=" + (shadows ? 1 : 0)
+            + "\nanimations=" + (animations ? 1 : 0) + "\nborderpx=" + borderpx
+            + "\nunfocused_opacity=" + unfocusedOpacity)
     }
     function setEffect(name, on) {
         root[name] = on
@@ -108,7 +97,7 @@ Singleton {
         dispatch("setoption,unfocused_opacity," + (pct / 100).toFixed(2))
     }
 
-    function setLayout(i, mon) { dispatchOn(mon, "setlayout," + layoutIds[i]) }
+    function setLayout(i, mon) { dispatchOn(mon, "setlayout," + layouts[i].id) }
     function cycleLayout(dir, mon) {
         setLayout(((of(mon).layoutIndex + dir) % layouts.length + layouts.length) % layouts.length, mon)
     }
@@ -145,10 +134,8 @@ Singleton {
     // gaps state file: written by the picker slider, applied on bar start
     // (a config reload resets setoption values; scripts/mango-reload asks
     // for a re-apply through the "wm" IpcHandler in shell.qml)
-    FileView {
+    StateFile {
         path: Theme.stateDir + "/mango-gaps"
-        watchChanges: true
-        onFileChanged: reload()
         onLoaded: {
             const v = parseInt(text())
             if (!isNaN(v)) { root.gaps = v; root.applyGaps(v) }
@@ -156,10 +143,8 @@ Singleton {
     }
 
     // effects state file, same lifecycle as the gaps one
-    FileView {
+    StateFile {
         path: Theme.stateDir + "/mango-effects"
-        watchChanges: true
-        onFileChanged: reload()
         onLoaded: {
             for (const line of text().split("\n")) {
                 const [k, v] = line.split("=")
@@ -220,13 +205,6 @@ Singleton {
         mons = next
         const f = list.find(x => x.active) ?? list[0]
         monitor = f.name ?? ""
-        const st = next[monitor]
-        tagCount = st.tagCount
-        seltags = st.seltags
-        occtags = st.occtags
-        urgtags = st.urgtags
-        title = st.title
-        layoutIndex = st.layoutIndex
     }
 
     // --- which apps sit on which tag (the Tags strip's icons) ---
@@ -234,6 +212,7 @@ Singleton {
     // with a count. Runs only while the toggle is on: off, nothing runs.
 
     property var tagApps: ({})   // output name -> tag index -> [{appid, icon, count}]
+    property string _tagAppsJson: ""   // the last snapshot: an unchanged one is skipped
     property var _iconCache: ({})
     function appIcon(appid) {
         if (_iconCache[appid] !== undefined) return _iconCache[appid]
@@ -258,7 +237,9 @@ Singleton {
     }
     Connections {
         target: Theme
-        function onTagIconsChanged() { if (!Theme.tagIcons) root.tagApps = ({}) }
+        function onTagIconsChanged() {
+            if (!Theme.tagIcons) { root.tagApps = ({}); root._tagAppsJson = "" }
+        }
     }
     function parseClients(line) {
         let j
@@ -277,6 +258,9 @@ Singleton {
                 else perTag[i].push({ appid: c.appid, icon: appIcon(c.appid), count: 1 })
             }
         }
+        const json = JSON.stringify(perMon)
+        if (json === _tagAppsJson) return
+        _tagAppsJson = json
         tagApps = perMon
     }
 
@@ -294,7 +278,6 @@ Singleton {
     function viewTag(i, mon) {
         dispatch(elsewhere(mon) ? "viewcrossmon," + (i + 1) + "," + mon : "view," + (i + 1))
     }
-    function toggleViewTag(i) { dispatch("toggleview," + (i + 1)) }
     function sendToTag(i, mon) {
         dispatch(elsewhere(mon) ? "tagcrossmon," + (i + 1) + "," + mon : "tag," + (i + 1))
     }
@@ -309,7 +292,4 @@ Singleton {
     // end them (it adds the ones every setup shares). mmsg is the bar's own
     // state stream, wl-paste the clipboard history watcher.
     readonly property var sessionProcs: /^(mango|Xwayland|mmsg|swayidle|awww-daemon|wl-paste)$/
-    function openPowerMenu() {
-        Quickshell.execDetached([Theme.shareDir + "/scripts/power"])
-    }
 }

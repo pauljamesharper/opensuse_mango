@@ -1,23 +1,13 @@
 import QtQuick
-import Quickshell
-import Quickshell.Io
 
-// Settings panel (Super+/ opens it on Keybinds; Settings in the command
-// menu and the launcher): one centered card with the tabs down the left
-// — Keybinds, Rules, Layout, Bar, Wallpaper, Displays — and the tab's content
-// on the right. This is where the setup is configured; the bar's
-// modules and their popups stay what they are (state and quick actions).
-// Apply at the foot of the tab strip lights once the Keybinds or Rules
-// tab has saved something mango isn't running yet; it reloads the
-// config (scripts/keybinds apply → mango-reload).
-// IPC: `settings toggle`, `settings open <tab>`; the tabs' own names
-// answer too: keybinds, rules, layouts / tweaks, wallpapers, displays.
+// Settings panel: a centered card, the tabs down the left and the tab's
+// content on the right. Apply at the foot of the strip shows once the
+// Keybinds or Rules tab has saved something mango isn't running yet.
+// IPC: `settings toggle | close | open <tab>`; a tab's own name (keybinds,
+// rules, layouts / tweaks, wallpapers, displays) toggles or opens that
+// tab, and `wallpapers random | set <path>` go to the Wallpaper pane.
 Popout {
     id: root
-    // a tab's own name (toggle, open) lands on that tab: layouts / tweaks
-    // the Layout tab, keybinds the Keybinds tab, wallpapers the Wallpaper
-    // tab (random and set go to the pane; it opens the panel for the
-    // extraction if need be)
     ipcNames: ["settings", "keybinds", "rules", "layouts", "tweaks", "wallpapers", "displays"]
     function ipc(fn, arg, target) {
         if (target === "wallpapers" && fn === "random") { wallpaper.applyRandom(); return }
@@ -57,19 +47,15 @@ Popout {
     cardWidth: Math.min(1560, fitWidth - 64)
     cardHeight: fitHeight * 0.8
 
-    onVisibleChanged: {
-        if (visible) {
-            if (tab === 0) keybinds.shown()
-            if (tab === 1) rules.shown()
-            if (tab === 4) wallpaper.shown()
-            if (tab === 5) displays.shown()
-        } else {
-            keybinds.hidden()
-            rules.hidden()
-            wallpaper.hidden()
-            displays.hidden()
-        }
+    // the panes that hear shown() and hidden(), by tab key
+    readonly property var panes: ({ keybinds: keybinds, rules: rules, wallpaper: wallpaper, displays: displays })
+    function sync(hide) {
+        if (hide)
+            for (const k in panes) panes[k].hidden()
+        if (visible)
+            panes[tabs[tab].key]?.shown()
     }
+    onVisibleChanged: sync(!visible)
     // Ctrl+PageDown / Ctrl+PageUp walk the tabs (Ctrl+Tab is the
     // Keybinds tab's chips). Window shortcuts: they fire before the
     // search field or the wallpaper grid can swallow the key.
@@ -77,16 +63,8 @@ Popout {
     Shortcut { sequences: ["Ctrl+PgUp"]; onActivated: root.tab = (root.tab + root.tabs.length - 1) % root.tabs.length }
     onTabChanged: {
         takeFocus()
-        if (!visible)
-            return
-        keybinds.hidden()
-        rules.hidden()
-        wallpaper.hidden()
-        displays.hidden()
-        if (tab === 0) keybinds.shown()
-        if (tab === 1) rules.shown()
-        if (tab === 4) wallpaper.shown()
-        if (tab === 5) displays.shown()
+        if (visible)
+            sync(true)
     }
     // Apply: scripts/keybinds apply reloads mango's config
     function apply() { rules.apply(); keybinds.apply() }
@@ -100,74 +78,38 @@ Popout {
         Repeater {
             model: root.tabs
 
-            Rectangle {
-                id: tabItem
+            ListRow {
                 required property var modelData
                 required property int index
-                readonly property bool active: root.tab === index
-                width: strip.width
+                glyph: modelData.icon
+                text: modelData.label
+                active: root.tab === index
                 height: 36
-                radius: 8
-                color: active ? Theme.selbg
-                     : tabMa.containsMouse ? Qt.alpha(Theme.fg, 0.12) : "transparent"
-                Behavior on color { ColorAnimation { duration: 120 } }
-
-                Row {
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.left: parent.left
-                    anchors.leftMargin: 12
-                    spacing: 10
-                    Txt {
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 18
-                        horizontalAlignment: Text.AlignHCenter
-                        text: tabItem.modelData.icon
-                        color: tabItem.active ? Theme.selfg : Theme.cyan
-                        font.pixelSize: 15
-                    }
-                    Txt {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: tabItem.modelData.label
-                        color: tabItem.active ? Theme.selfg : Qt.alpha(Theme.fg, 0.9)
-                        font.pixelSize: 13
-                        font.bold: tabItem.active
-                    }
-                }
-                MouseArea {
-                    id: tabMa
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.tab = tabItem.index
-                }
+                leftMargin: 12
+                glyphWidth: 18
+                glyphSize: 15
+                fontSize: 13
+                activeColor: Theme.selbg
+                glyphInk: active ? Theme.selfg : Theme.cyan
+                ink: active ? Theme.selfg : Qt.alpha(Theme.fg, 0.9)
+                onClicked: root.tab = index
             }
         }
     }
 
     // saved changes mango isn't running yet: one click reloads it
-    Rectangle {
-        id: applyBtn
+    Btn {
         visible: root.dirty
         anchors.left: parent.left
         anchors.bottom: parent.bottom
         width: root.stripWidth
         height: 36
-        radius: 8
-        color: applyMa.containsMouse ? Qt.lighter(Theme.accent, 1.1) : Theme.accent
-        Txt {
-            anchors.centerIn: parent
-            text: "󰑓  Apply"
-            color: Theme.bg
-            font.bold: true
-            font.pixelSize: 12
-        }
-        MouseArea {
-            id: applyMa
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: root.apply()
-        }
+        text: "󰑓  Apply"
+        active: true
+        fontSize: 12
+        activeHoverColor: Qt.lighter(Theme.accent, 1.1)
+        fadeMs: 0
+        onClicked: root.apply()
     }
     Txt {
         visible: !root.dirty

@@ -3,7 +3,7 @@ import Quickshell
 import Quickshell.Widgets
 import Quickshell.Services.SystemTray
 
-// StatusNotifierItem tray (SNI over DBus, works fine on X11).
+// StatusNotifierItem tray (SNI over DBus).
 // Left click activates, right click opens the item's menu.
 Rectangle {
     id: root

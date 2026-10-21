@@ -2,8 +2,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Widgets
 
-// 12 bspwm desktops: focused = wide accent pill, occupied = numbered cell,
-// empty = small dot. Widths and colors animate on every report line.
+// This output's mango tags: focused = wide accent pill, occupied = numbered
+// cell, empty = small dot; widths and colors animate on every change.
 // With the "Tag icons" toggle on, an occupied cell also carries the icons
 // of the apps on it (one per app, at most three), so the strip answers
 // "where did I leave Firefox" by itself.

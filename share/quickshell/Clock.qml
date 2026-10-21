@@ -1,7 +1,7 @@
 import QtQuick
 import Quickshell
 
-// Date + 12-hour time (the slstatus formats), with a calendar on click.
+// Date + 12-hour time, with a calendar on click.
 BarModule {
     id: root
 

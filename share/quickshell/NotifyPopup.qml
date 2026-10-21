@@ -17,17 +17,15 @@ Popout {
     onVisibleChanged: if (visible) refresh()
 
     function refresh() {
-        uptimeProc.running = true
+        uptimeFile.reload()
         histProc.running = false
         histProc.running = true
     }
 
-    Process {
-        id: uptimeProc
-        command: ["cat", "/proc/uptime"]
-        stdout: SplitParser {
-            onRead: line => root.uptimeSecs = parseFloat(line.split(" ")[0]) || 0
-        }
+    FileView {
+        id: uptimeFile
+        path: "/proc/uptime"
+        onLoaded: root.uptimeSecs = parseFloat(text().split(" ")[0]) || 0
     }
 
     property string _hist: ""

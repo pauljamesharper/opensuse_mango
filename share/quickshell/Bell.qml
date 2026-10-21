@@ -1,9 +1,8 @@
 import QtQuick
 
-// Do-not-disturb indicator, CapsLock-pattern: hidden while dunst is live,
-// a red bell-off pill only while DND is on — the state you must not lose
-// track of. Toggling lives in the Commands panel; this stays clickable as
-// the fast way out (click resumes notifications, right click history).
+// Do-not-disturb indicator: a red bell-off icon, shown only while DND is
+// on. Click resumes notifications, right click opens the history; the
+// Commands tile toggles it too.
 BarModule {
     id: root
 

@@ -1,10 +1,8 @@
 import QtQuick
 
-// System numbers on the bar: CPU / RAM / root fs ("/" tag is the
-// mountpoint), plus battery on laptops (hidden when none). Text tags in
-// the slstatus color story; battery keeps its state-encoding glyph.
-// A pill because it's clickable: left opens the "what's using it" card
-// (MetricsPopup), right goes straight to btop.
+// System numbers on the bar: CPU / RAM / root fs ("/" is the mountpoint),
+// plus battery on laptops. Left click opens the "what's using it" card
+// (MetricsPopup), right click goes straight to btop.
 BarModule {
     id: root
 

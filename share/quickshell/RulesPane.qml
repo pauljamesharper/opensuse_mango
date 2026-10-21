@@ -2,21 +2,14 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Rules tab of the settings panel: ~/.config/mango/rules.conf as a list
-// — what a rule matches and what it does — with an editor built around
-// the decisions rather than mango's windowrule keys. A new rule starts
-// from a window: pick one of the open windows (mmsg lists them, with
-// the command that opened each, from /proc) or type the app id; the match shows as one chip, the raw app id / title stay
-// behind "edit match". Then floating (with a size, a fraction of the
-// screen), the tag it opens on, the monitor when there is more than one,
-// a note. "Scratchpad" is a switch: on, it asks for the command that
-// opens the window and the key that toggles it — saving writes the rule
-// and the toggle_named_scratchpad bind both, and deleting removes both.
-// The app id doubles as the scratchpad's name, so the command has to
-// start the app with that id (kitty --class NAME, most GUI apps have a
-// fixed one). Every write goes through mango's own config check first,
-// so a bad rule is refused with its reason. scripts/rules and
-// scripts/keybinds are the back ends.
+// Rules tab of the settings panel: rules.conf as a list of what each
+// rule matches and does, with an editor built around those choices
+// rather than mango's windowrule keys. A new rule starts from one of the
+// open windows or a typed app id, then floating and its size, the tag,
+// the monitor, a note. A scratchpad rule also writes its
+// toggle_named_scratchpad bind, and deleting removes both; the app id is
+// the scratchpad's name, so its command must open the app with that id.
+// scripts/rules and scripts/keybinds check every write first.
 Item {
     id: root
     required property var popup
@@ -66,23 +59,7 @@ Item {
         return s
     }
 
-    // one verb at a time, for either script; the exit code rides on the first line
-    Process {
-        id: proc
-        property var done: null
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const f = proc.done; proc.done = null
-                const i = text.indexOf("\n")
-                if (f) f(parseInt(text.slice(0, i)), text.slice(i + 1))
-            }
-        }
-    }
-    function run(script, args, cb) {
-        proc.done = cb
-        proc.command = ["sh", "-c", 'o=$("$0" "$@" 2>&1); r=$?; printf "%s\\n%s" "$r" "$o"', script].concat(args)
-        proc.running = true
-    }
+    Verb { id: verb }
     function setStatus(s, bad) { status = s; statusBad = bad }
 
     function fill(f) {
@@ -101,7 +78,7 @@ Item {
         return parts.join("  ·  ")
     }
     function openEditor(line, section, match) {
-        run(root.tool, ["get", String(line)], (rc, out) => {
+        verb.run(root.tool, ["get", String(line)], (rc, out) => {
             const f = out.replace(/\n$/, "").split("\t")
             if (rc !== 0 || f.length < 9) return
             editing = { line: line, section: section, isNew: false, title: match }
@@ -113,7 +90,7 @@ Item {
     // the toggle_named_scratchpad bind for NAME, from the keybinds rows:
     // its line, chord and the command it runs
     function findBind(name) {
-        run(root.ktool, [], (rc, out) => {
+        verb.run(root.ktool, [], (rc, out) => {
             bindLine = 0
             for (const l of out.split("\n")) {
                 const f = l.split("\t")
@@ -122,7 +99,7 @@ Item {
                 if (a[0] !== "toggle_named_scratchpad" || a[1] !== name) continue
                 bindLine = parseInt(f[3])
                 runField.text = a.slice(3).join(",")
-                run(root.ktool, ["get", String(bindLine)], (rc2, out2) => {
+                verb.run(root.ktool, ["get", String(bindLine)], (rc2, out2) => {
                     const g = out2.replace(/\n$/, "").split("\t")
                     if (rc2 === 0 && g.length >= 2)
                         chordField.text = (g[0] === "none" || g[0] === "" ? "" : g[0] + "+") + g[1]
@@ -152,7 +129,7 @@ Item {
             id, titleField.text.trim(), tag ? String(tag) : "", floating || scratch ? "yes" : "no", monitor,
             floating || scratch ? wField.text.trim() : "", floating || scratch ? hField.text.trim() : "",
             scratch ? "yes" : "no", descField.text.trim()])
-        run(root.tool, args, (rc, out) => {
+        verb.run(root.tool, args, (rc, out) => {
             if (rc !== 0) { setStatus(out.trim(), true); return }
             // the rule is in the file now: a second Save edits it
             const line = parseInt(out.trim())
@@ -169,7 +146,7 @@ Item {
         const desc = descField.text.trim() !== "" ? descField.text.trim() : "Scratchpad " + name
         const value = "toggle_named_scratchpad," + name + ",none," + runField.text.trim()
         const args = (bindLine ? ["set", String(bindLine)] : ["add", "apps"]).concat([ck[0], ck[1], desc, "do", value])
-        run(root.ktool, args, (rc, out) => {
+        verb.run(root.ktool, args, (rc, out) => {
             if (rc !== 0) { setStatus("rule saved, but the key: " + out.trim(), true); dirty = true; loader.running = true; return }
             saved()
         })
@@ -182,7 +159,7 @@ Item {
     function remove() {
         const e = editing
         if (!e || e.isNew) { cancelEdit(); return }
-        const dropRule = () => run(root.tool, ["delete", String(e.line)], (rc, out) => {
+        const dropRule = () => verb.run(root.tool, ["delete", String(e.line)], (rc, out) => {
             if (rc !== 0) { setStatus(out.trim(), true); return }
             dirty = true; editing = null
             setStatus("removed · Apply reloads mango without it", false)
@@ -190,13 +167,13 @@ Item {
         })
         // a scratchpad's bind goes with it
         if (scratch && bindLine)
-            run(root.ktool, ["delete", String(bindLine)], (rc, out) => { if (rc !== 0) setStatus(out.trim(), true); else dropRule() })
+            verb.run(root.ktool, ["delete", String(bindLine)], (rc, out) => { if (rc !== 0) setStatus(out.trim(), true); else dropRule() })
         else
             dropRule()
     }
     // the open windows, to choose the match from
     function pick() {
-        run(root.tool, ["pick"], (rc, out) => {
+        verb.run(root.tool, ["pick"], (rc, out) => {
             const w = []
             for (const l of out.split("\n")) {
                 const f = l.split("\t")
@@ -236,23 +213,7 @@ Item {
         Quickshell.execDetached([root.tool, "open", String(line)])
     }
 
-    component Pill: Rectangle {
-        property string label
-        property bool active: false
-        signal clicked()
-        width: pillText.implicitWidth + 18
-        height: 24
-        radius: 8
-        color: active ? Theme.accent : pillMa.containsMouse ? Qt.alpha(Theme.fg, 0.14) : Qt.alpha(Theme.fg, 0.06)
-        Behavior on color { ColorAnimation { duration: 120 } }
-        Txt { id: pillText; anchors.centerIn: parent; text: parent.label; color: parent.active ? Theme.bg : Qt.alpha(Theme.fg, 0.85); font.bold: parent.active }
-        MouseArea { id: pillMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: parent.clicked() }
-    }
-    component Lbl: Txt {
-        width: 110
-        anchors.verticalCenter: parent.verticalCenter
-        color: Qt.alpha(Theme.fg, 0.7)
-    }
+    component Pill: Btn { ink: active ? Theme.bg : Qt.alpha(Theme.fg, 0.85) }
     component Switch: Item {
         id: sw
         property string label
@@ -339,14 +300,11 @@ Item {
                     width: parent.width
                     spacing: 1
 
-                    Txt {
-                        leftPadding: 6
+                    SectionLabel {
+                        caps: true
+                        topPadding: 0
                         bottomPadding: 4
                         text: section.modelData.title
-                        color: Theme.accent
-                        font.bold: true
-                        font.capitalization: Font.AllUppercase
-                        font.letterSpacing: 1
                     }
 
                     Repeater {
@@ -361,17 +319,12 @@ Item {
                             color: rowMa.containsMouse ? Qt.alpha(Theme.fg, 0.08) : "transparent"
                             Behavior on color { ColorAnimation { duration: 120 } }
 
-                            Rectangle {
+                            Keycap {
                                 id: matchCap
                                 x: 6; y: 4
-                                height: 20
-                                width: Math.min(matchText.implicitWidth + 12, 300)
-                                radius: 4
-                                color: Qt.alpha(Theme.fg, 0.08)
-                                border.width: 1
-                                border.color: Qt.alpha(Theme.fg, 0.16)
+                                width: Math.min(implicitWidth, 300)
                                 clip: true
-                                Txt { id: matchText; anchors.centerIn: parent; text: ruleRow.modelData.match; color: Theme.fg }
+                                text: ruleRow.modelData.match
                             }
                             Txt {
                                 id: detail
@@ -410,177 +363,140 @@ Item {
     }
 
     // --- editor ---
-    Rectangle {
+    EditorPanel {
         id: editorPanel
-        visible: root.editing !== null
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: edCol.implicitHeight + 24
-        radius: 10
-        color: Qt.alpha(Theme.fg, 0.05)
-        border.width: 1
-        border.color: Qt.alpha(Theme.accent, 0.3)
+        editing: root.editing
+        title: !root.editing ? "" : root.editing.isNew ? "New rule"
+            : "Editing: " + root.editing.title + "  ·  line " + root.editing.line
+        status: root.status
+        statusBad: root.statusBad
+        onSave: root.save()
+        onCancel: root.cancelEdit()
+        onRemove: root.remove()
 
-        Column {
-            id: edCol
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.margins: 12
+        // 1. the window
+        Row {
             spacing: 8
-
+            EditorPanel.Lbl { text: "Window" }
+            EditButton { anchors.verticalCenter: parent.verticalCenter; label: "󰖯 Pick a window"; primary: root.matchText === ""; onClicked: root.pick() }
+            Rectangle {
+                visible: root.matchText !== ""
+                anchors.verticalCenter: parent.verticalCenter
+                height: 24
+                width: matchChip.implicitWidth + 18
+                radius: 8
+                color: Qt.alpha(Theme.accent, 0.18)
+                border.width: 1
+                border.color: Qt.alpha(Theme.accent, 0.4)
+                Txt { id: matchChip; anchors.centerIn: parent; text: root.matchText; color: Theme.fg }
+            }
             Txt {
-                width: parent.width
-                text: !root.editing ? "" : root.editing.isNew ? "New rule"
-                    : "Editing: " + root.editing.title + "  ·  line " + root.editing.line
+                anchors.verticalCenter: parent.verticalCenter
+                text: root.showMatch ? "hide match fields" : (root.matchText === "" ? "or type its app id" : "edit match")
                 color: Theme.accent
-                font.bold: true
-                font.pixelSize: 12
-                elide: Text.ElideRight
+                font.pixelSize: 11
+                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.showMatch = !root.showMatch }
             }
+        }
+        // the open windows, one chip each
+        Flow {
+            visible: root.windows !== null
+            width: parent.width
+            spacing: 6
+            leftPadding: 118
+            Txt { visible: root.windows !== null && root.windows.length === 0; text: "nothing open to pick from: open the app, or type its app id"; color: Qt.alpha(Theme.fg, 0.5) }
+            Repeater {
+                model: root.windows ?? []
+                Pill {
+                    required property var modelData
+                    text: modelData.inner !== "" ? modelData.appid + "  ·  " + modelData.inner.split(" ")[0].split("/").pop()
+                         : modelData.appid + (modelData.title !== "" ? "  ·  " + modelData.title.slice(0, 40) : "")
+                    onClicked: root.choose(modelData)
+                }
+            }
+        }
+        Row {
+            visible: root.showMatch
+            spacing: 8
+            EditorPanel.Lbl { text: "" }
+            EditField { id: idField; width: 260; placeholder: "app id"; onAccepted: root.save(); onEscaped: root.cancelEdit() }
+            EditField { id: titleField; width: 300; placeholder: "title"; onAccepted: root.save(); onEscaped: root.cancelEdit() }
+            Txt { anchors.verticalCenter: parent.verticalCenter; text: "both are regexes; mmsg get focusing-client shows a window's"; color: Qt.alpha(Theme.fg, 0.4); font.pixelSize: 10 }
+        }
 
-            // 1. the window
-            Row {
-                spacing: 8
-                Lbl { text: "Window" }
-                EditButton { anchors.verticalCenter: parent.verticalCenter; label: "󰖯 Pick a window"; primary: root.matchText === ""; onClicked: root.pick() }
-                Rectangle {
-                    visible: root.matchText !== ""
-                    anchors.verticalCenter: parent.verticalCenter
-                    height: 24
-                    width: matchChip.implicitWidth + 18
-                    radius: 8
-                    color: Qt.alpha(Theme.accent, 0.18)
-                    border.width: 1
-                    border.color: Qt.alpha(Theme.accent, 0.4)
-                    Txt { id: matchChip; anchors.centerIn: parent; text: root.matchText; color: Theme.fg }
-                }
-                Txt {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: root.showMatch ? "hide match fields" : (root.matchText === "" ? "or type its app id" : "edit match")
-                    color: Theme.accent
-                    font.pixelSize: 11
-                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.showMatch = !root.showMatch }
+        // 2. what it does
+        Row {
+            spacing: 8
+            EditorPanel.Lbl { text: "Window is" }
+            Switch { label: "floating"; on: root.floating || root.scratch; enabled: !root.scratch; onToggled: root.floating = !root.floating }
+            Item { width: 16; height: 1 }
+            Txt { visible: root.floating || root.scratch; anchors.verticalCenter: parent.verticalCenter; text: "size"; color: Qt.alpha(Theme.fg, 0.7) }
+            EditField { id: wField; visible: root.floating || root.scratch; width: 70; placeholder: "width"; onAccepted: root.save(); onEscaped: root.cancelEdit() }
+            Txt { visible: root.floating || root.scratch; anchors.verticalCenter: parent.verticalCenter; text: "×"; color: Qt.alpha(Theme.fg, 0.5) }
+            EditField { id: hField; visible: root.floating || root.scratch; width: 70; placeholder: "height"; onAccepted: root.save(); onEscaped: root.cancelEdit() }
+            Txt { visible: root.floating || root.scratch; anchors.verticalCenter: parent.verticalCenter; text: "of the screen (0.6 = 60%), empty: the app's own size"; color: Qt.alpha(Theme.fg, 0.4); font.pixelSize: 10 }
+        }
+        Row {
+            spacing: 8
+            EditorPanel.Lbl { text: "Opens on tag" }
+            Repeater {
+                model: 12
+                Pill {
+                    required property int index
+                    text: String(index + 1)
+                    active: root.tag === index + 1
+                    onClicked: root.tag = root.tag === index + 1 ? 0 : index + 1
                 }
             }
-            // the open windows, one chip each
-            Flow {
-                visible: root.windows !== null
-                width: parent.width
-                spacing: 6
-                leftPadding: 118
-                Txt { visible: root.windows !== null && root.windows.length === 0; text: "nothing open to pick from: open the app, or type its app id"; color: Qt.alpha(Theme.fg, 0.5) }
-                Repeater {
-                    model: root.windows ?? []
-                    Pill {
-                        required property var modelData
-                        label: modelData.inner !== "" ? modelData.appid + "  ·  " + modelData.inner.split(" ")[0].split("/").pop()
-                             : modelData.appid + (modelData.title !== "" ? "  ·  " + modelData.title.slice(0, 40) : "")
-                        onClicked: root.choose(modelData)
+            Txt { anchors.verticalCenter: parent.verticalCenter; leftPadding: 6; text: root.tag ? "" : "none: the current tag"; color: Qt.alpha(Theme.fg, 0.4) }
+        }
+        Row {
+            visible: Quickshell.screens.length > 1
+            spacing: 8
+            EditorPanel.Lbl { text: "On monitor" }
+            Pill { text: "current"; active: root.monitor === ""; onClicked: root.monitor = "" }
+            Repeater {
+                model: Quickshell.screens
+                Pill { required property var modelData; text: modelData.name; active: root.monitor === modelData.name; onClicked: root.monitor = modelData.name }
+            }
+        }
+
+        // 3. scratchpad
+        Row {
+            spacing: 8
+            EditorPanel.Lbl { text: "Scratchpad" }
+            Switch {
+                label: root.scratch ? "a scratchpad: a key shows and hides it" : "make it a scratchpad"
+                on: root.scratch
+                onToggled: {
+                    root.scratch = !root.scratch
+                    if (root.scratch) {
+                        root.floating = true
+                        if (wField.text.trim() === "" && hField.text.trim() === "") { wField.text = "0.6"; hField.text = "0.6" }
+                        if (runField.text.trim() === "") runField.text = root.pickedCmd
                     }
                 }
             }
-            Row {
-                visible: root.showMatch
-                spacing: 8
-                Lbl { text: "" }
-                EditField { id: idField; width: 260; placeholder: "app id"; onAccepted: root.save(); onEscaped: root.cancelEdit() }
-                EditField { id: titleField; width: 300; placeholder: "title"; onAccepted: root.save(); onEscaped: root.cancelEdit() }
-                Txt { anchors.verticalCenter: parent.verticalCenter; text: "both are regexes; mmsg get focusing-client shows a window's"; color: Qt.alpha(Theme.fg, 0.4); font.pixelSize: 10 }
-            }
+        }
+        Row {
+            visible: root.scratch
+            spacing: 8
+            EditorPanel.Lbl { text: "Opened by" }
+            EditField { id: runField; width: 420; placeholder: "command that opens it, e.g. kitty --class notes"; onAccepted: root.save(); onEscaped: root.cancelEdit() }
+            Txt { anchors.verticalCenter: parent.verticalCenter; text: "it must open with the app id above"; color: Qt.alpha(Theme.fg, 0.4); font.pixelSize: 10 }
+        }
+        Row {
+            visible: root.scratch
+            spacing: 8
+            EditorPanel.Lbl { text: "Toggle key" }
+            ChordField { id: chordField; onAccepted: root.save(); onEscaped: root.cancelEdit() }
+            Txt { anchors.verticalCenter: parent.verticalCenter; text: root.bindLine ? "" : "written to keybinds.conf on save"; color: Qt.alpha(Theme.fg, 0.4) }
+        }
 
-            // 2. what it does
-            Row {
-                spacing: 8
-                Lbl { text: "Window is" }
-                Switch { label: "floating"; on: root.floating || root.scratch; enabled: !root.scratch; onToggled: root.floating = !root.floating }
-                Item { width: 16; height: 1 }
-                Txt { visible: root.floating || root.scratch; anchors.verticalCenter: parent.verticalCenter; text: "size"; color: Qt.alpha(Theme.fg, 0.7) }
-                EditField { id: wField; visible: root.floating || root.scratch; width: 70; placeholder: "width"; onAccepted: root.save(); onEscaped: root.cancelEdit() }
-                Txt { visible: root.floating || root.scratch; anchors.verticalCenter: parent.verticalCenter; text: "×"; color: Qt.alpha(Theme.fg, 0.5) }
-                EditField { id: hField; visible: root.floating || root.scratch; width: 70; placeholder: "height"; onAccepted: root.save(); onEscaped: root.cancelEdit() }
-                Txt { visible: root.floating || root.scratch; anchors.verticalCenter: parent.verticalCenter; text: "of the screen (0.6 = 60%), empty: the app's own size"; color: Qt.alpha(Theme.fg, 0.4); font.pixelSize: 10 }
-            }
-            Row {
-                spacing: 8
-                Lbl { text: "Opens on tag" }
-                Repeater {
-                    model: 12
-                    Pill {
-                        required property int index
-                        label: String(index + 1)
-                        active: root.tag === index + 1
-                        onClicked: root.tag = root.tag === index + 1 ? 0 : index + 1
-                    }
-                }
-                Txt { anchors.verticalCenter: parent.verticalCenter; leftPadding: 6; text: root.tag ? "" : "none: the current tag"; color: Qt.alpha(Theme.fg, 0.4) }
-            }
-            Row {
-                visible: Quickshell.screens.length > 1
-                spacing: 8
-                Lbl { text: "On monitor" }
-                Pill { label: "current"; active: root.monitor === ""; onClicked: root.monitor = "" }
-                Repeater {
-                    model: Quickshell.screens
-                    Pill { required property var modelData; label: modelData.name; active: root.monitor === modelData.name; onClicked: root.monitor = modelData.name }
-                }
-            }
-
-            // 3. scratchpad
-            Row {
-                spacing: 8
-                Lbl { text: "Scratchpad" }
-                Switch {
-                    label: root.scratch ? "a scratchpad: a key shows and hides it" : "make it a scratchpad"
-                    on: root.scratch
-                    onToggled: {
-                        root.scratch = !root.scratch
-                        if (root.scratch) {
-                            root.floating = true
-                            if (wField.text.trim() === "" && hField.text.trim() === "") { wField.text = "0.6"; hField.text = "0.6" }
-                            if (runField.text.trim() === "") runField.text = root.pickedCmd
-                        }
-                    }
-                }
-            }
-            Row {
-                visible: root.scratch
-                spacing: 8
-                Lbl { text: "Opened by" }
-                EditField { id: runField; width: 420; placeholder: "command that opens it, e.g. kitty --class notes"; onAccepted: root.save(); onEscaped: root.cancelEdit() }
-                Txt { anchors.verticalCenter: parent.verticalCenter; text: "it must open with the app id above"; color: Qt.alpha(Theme.fg, 0.4); font.pixelSize: 10 }
-            }
-            Row {
-                visible: root.scratch
-                spacing: 8
-                Lbl { text: "Toggle key" }
-                ChordField { id: chordField; onAccepted: root.save(); onEscaped: root.cancelEdit() }
-                Txt { anchors.verticalCenter: parent.verticalCenter; text: root.bindLine ? "" : "written to keybinds.conf on save"; color: Qt.alpha(Theme.fg, 0.4) }
-            }
-
-            Row {
-                spacing: 8
-                Lbl { text: "Note" }
-                EditField { id: descField; width: 420; placeholder: "optional"; onAccepted: root.save(); onEscaped: root.cancelEdit() }
-            }
-
-            Row {
-                spacing: 8
-                EditButton { label: "Save"; primary: true; onClicked: root.save() }
-                EditButton { label: "Cancel"; onClicked: root.cancelEdit() }
-                EditButton { visible: root.editing && !root.editing.isNew; label: "Delete"; ink: Theme.red; onClicked: root.remove() }
-                Txt {
-                    anchors.verticalCenter: parent.verticalCenter
-                    leftPadding: 8
-                    width: edCol.width - 300
-                    elide: Text.ElideRight
-                    visible: root.status !== ""
-                    text: root.status
-                    color: root.statusBad ? Theme.red : Qt.alpha(Theme.fg, 0.7)
-                    font.bold: root.statusBad
-                }
-            }
+        Row {
+            spacing: 8
+            EditorPanel.Lbl { text: "Note" }
+            EditField { id: descField; width: 420; placeholder: "optional"; onAccepted: root.save(); onEscaped: root.cancelEdit() }
         }
     }
 }

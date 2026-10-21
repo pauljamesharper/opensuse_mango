@@ -20,11 +20,7 @@ Singleton {
     // end-timestamp + minutes in a plain state file so a running timer
     // (and the duration preference) survives bar restarts; watched, so
     // `echo "0 25" > ~/.local/state/mango/pomodoro` stops it from a shell
-    function persist() {
-        Quickshell.execDetached(["sh", "-c",
-            "printf '%s %s\\n' " + Math.round(endMs) + " " + minutes +
-            " > '" + Theme.stateDir + "/pomodoro'"])
-    }
+    function persist() { Theme.writeState("pomodoro", Math.round(endMs) + " " + minutes) }
 
     FileView {
         path: Theme.stateDir + "/pomodoro"

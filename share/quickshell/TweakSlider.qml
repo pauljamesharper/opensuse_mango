@@ -23,6 +23,7 @@ Item {
 
     property real drag: 0
     readonly property real shown: ma.pressed ? drag : value
+    readonly property real frac: Math.min(Math.max((shown - from) / (to - from), 0), 1)
 
     function fmt(v) { return isInt ? Math.round(v) : Math.round(v * 100) / 100 }
 
@@ -53,17 +54,13 @@ Item {
         color: Qt.alpha(Theme.fg, 0.12)
 
         Rectangle {
-            readonly property real frac: Math.min(Math.max(
-                (ts.shown - ts.from) / (ts.to - ts.from), 0), 1)
-            width: frac * parent.width
+            width: ts.frac * parent.width
             height: parent.height
             radius: parent.radius
             color: Theme.accent
         }
         Rectangle {
-            readonly property real frac: Math.min(Math.max(
-                (ts.shown - ts.from) / (ts.to - ts.from), 0), 1)
-            x: frac * parent.width - width / 2
+            x: ts.frac * parent.width - width / 2
             anchors.verticalCenter: parent.verticalCenter
             width: 12
             height: 12

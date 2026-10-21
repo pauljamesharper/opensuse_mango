@@ -3,12 +3,11 @@ import Quickshell
 import Quickshell.Io
 
 // Displays tab of the settings panel: arrange, size, rotate and switch
-// outputs without leaving the desktop. wlr-randr does the work and the
-// compositor answers live, so every change is a trial: 15 seconds to
-// keep it or it comes back — a mode the monitor can't show never leaves
-// you blind. Kept layouts go to displays.conf, which scripts/displays
-// puts back on every bar start (mango's monitorrule stays the fallback).
-// Drag the diagram to arrange; edges snap to their neighbours.
+// outputs live through wlr-randr. Every change is a trial that reverts
+// after 15 seconds unless kept, so a mode the monitor can't show never
+// leaves you blind. Kept layouts go to displays.conf, which
+// scripts/displays restores on every bar start (mango's monitorrule is
+// the fallback). Drag the diagram to arrange; edges snap to neighbours.
 Item {
     id: root
     required property var popup
@@ -111,13 +110,7 @@ Item {
     // diagram and the pickers rebind
     function set(field, value) {
         const a = clone(outs)
-        const o = a[sel]
-        o[field] = value
-        if (field === "w" || field === "h") {
-            const rs = o.modes.filter(m => m.w === o.w && m.h === o.h).map(m => m.r)
-            if (!rs.includes(o.r))
-                o.r = Math.max(...rs)
-        }
+        a[sel][field] = value
         outs = normalize(a)
     }
     function setRes(w, h) {
@@ -257,32 +250,7 @@ Item {
     }
 
     // --- pieces ---
-    component Pill: Rectangle {
-        property string label
-        property bool active: false
-        property bool star: false
-        signal clicked()
-        width: pillText.implicitWidth + 18
-        height: 24
-        radius: 8
-        color: active ? Theme.accent
-             : pillMa.containsMouse ? Qt.alpha(Theme.fg, 0.14) : Qt.alpha(Theme.fg, 0.06)
-        Behavior on color { ColorAnimation { duration: 120 } }
-        Txt {
-            id: pillText
-            anchors.centerIn: parent
-            text: label + (star ? " ★" : "")
-            color: active ? Theme.bg : Qt.alpha(Theme.fg, 0.85)
-            font.bold: active
-        }
-        MouseArea {
-            id: pillMa
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: parent.clicked()
-        }
-    }
+    component Pill: Btn { ink: active ? Theme.bg : Qt.alpha(Theme.fg, 0.85) }
     component Label: Txt {
         color: Qt.alpha(Theme.fg, 0.6)
     }
@@ -297,7 +265,7 @@ Item {
         Pill {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            label: value + (root.pick === key ? "  󰅃" : "  󰅀")
+            text: value + (root.pick === key ? "  󰅃" : "  󰅀")
             active: false
             onClicked: root.pick = root.pick === key ? "" : key
         }
@@ -420,7 +388,7 @@ Item {
                 model: root.outs.map((o, i) => ({ o: o, i: i })).filter(e => !e.o.on)
                 Pill {
                     required property var modelData
-                    label: "󰶐  " + modelData.o.name + " · off"
+                    text: "󰶐  " + modelData.o.name + " · off"
                     active: modelData.i === root.sel
                     onClicked: { root.sel = modelData.i; root._picked = true }
                 }
@@ -527,8 +495,7 @@ Item {
                 model: root.resolutions
                 Pill {
                     required property var modelData
-                    label: modelData.w + "×" + modelData.h
-                    star: modelData.preferred
+                    text: modelData.w + "×" + modelData.h + (modelData.preferred ? " ★" : "")
                     active: root.cur && modelData.w === root.cur.w && modelData.h === root.cur.h
                     onClicked: { root.setRes(modelData.w, modelData.h); root.pick = "" }
                 }
@@ -548,7 +515,7 @@ Item {
                 model: root.rates
                 Pill {
                     required property var modelData
-                    label: modelData + " Hz"
+                    text: modelData + " Hz"
                     active: root.cur && modelData === root.cur.r
                     onClicked: { root.set("r", modelData); root.pick = "" }
                 }
@@ -562,7 +529,7 @@ Item {
                 model: root.scales
                 Pill {
                     required property var modelData
-                    label: Math.round(modelData * 100) + "%"
+                    text: Math.round(modelData * 100) + "%"
                     active: root.cur && modelData === root.cur.scale
                     onClicked: root.set("scale", modelData)
                 }
@@ -576,7 +543,7 @@ Item {
                 model: root.rotations
                 Pill {
                     required property var modelData
-                    label: modelData.l
+                    text: modelData.l
                     active: root.cur && modelData.t === root.cur.transform
                     onClicked: root.set("transform", modelData.t)
                 }
@@ -623,25 +590,25 @@ Item {
             spacing: 6
 
             Pill {
-                label: "identify"
+                text: "identify"
                 active: Wm.identifyOutputs
                 onClicked: { Wm.identifyOutputs = true; identTimer.restart() }
             }
             Pill {
                 visible: root.keepLeft === 0
-                label: "apply"
+                text: "apply"
                 active: root.dirty && !root.busy
                 opacity: root.dirty ? 1 : 0.5
                 onClicked: if (root.dirty && !root.busy) root.apply()
             }
             Pill {
                 visible: root.keepLeft > 0
-                label: "revert"
+                text: "revert"
                 onClicked: root.revert()
             }
             Pill {
                 visible: root.keepLeft > 0
-                label: "keep"
+                text: "keep"
                 active: true
                 onClicked: root.keep()
             }

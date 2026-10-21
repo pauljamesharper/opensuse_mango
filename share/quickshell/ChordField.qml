@@ -1,5 +1,4 @@
 import QtQuick
-import Quickshell
 
 // A key chord to edit: the text ("super+shift+b"), a Record button that
 // takes the next chord from the keyboard, and the chord as keycaps.
@@ -24,18 +23,14 @@ Row {
         const key = parts.pop()
         return [parts.length ? parts.join("+").toLowerCase() : "none", key]
     }
-    // Wm.setKeyGrab exists only on setups whose WM can let go of its
-    // grabs (dwm); mango has none, so the guard skips it.
     function start() {
         recording = true
-        if (typeof Wm.setKeyGrab === "function") Wm.setKeyGrab(false)
         recorder.forceActiveFocus()
     }
     function stop() {
         if (!recording)
             return
         recording = false
-        if (typeof Wm.setKeyGrab === "function") Wm.setKeyGrab(true)
         field.input.forceActiveFocus()
     }
     // the X keysym name for a Qt key event, or null for a modifier alone
@@ -124,16 +119,7 @@ Row {
                 return parts.map(p => p.length === 1 ? p.toUpperCase()
                     : p.charAt(0).toUpperCase() + p.slice(1))
             }
-            Rectangle {
-                required property string modelData
-                height: 20
-                width: pv.implicitWidth + 12
-                radius: 4
-                color: Qt.alpha(Theme.fg, 0.08)
-                border.width: 1
-                border.color: Qt.alpha(Theme.fg, 0.16)
-                Txt { id: pv; anchors.centerIn: parent; text: parent.modelData }
-            }
+            Keycap { required property string modelData; text: modelData }
         }
     }
 }

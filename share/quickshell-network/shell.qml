@@ -2,32 +2,25 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Network — a small connectivity front-end (nmcli + bluetoothctl
-// underneath) in its own quickshell instance, laid out by what you came
-// to do:
-//   the connection you're on (name, status, Wi-Fi switch) and how it's
-//   doing (ping, loss, speed, IP, gateway) — then VPNs — then Wi-Fi you've
-//   used before (one click to join) and new networks (inline password) —
-//   then Bluetooth (click to connect/disconnect, right-click to forget,
-//   "pair new" for PIN-less devices; anything needing a PIN is blueman's
-//   job; hidden without an adapter) — then rescan / advanced settings.
-// The window sizes to its content, up to 80% of the screen, and scrolls.
+// Network: a connectivity app over nmcli and bluetoothctl, in its own qs
+// instance. Top to bottom: the connection you're on and how it's doing,
+// VPNs, known then new Wi-Fi, Bluetooth (right-click forgets; pairing
+// that needs a PIN is blueman's job), then rescan and advanced settings.
+// Sized to its content up to 80% of the screen, scrolling past that.
 ShellRoot {
     FloatingWindow {
         id: win
 
         title: "Network"
-        // laid out at 1080p sizes (440 wide) and scaled as a whole by the
-        // bar's popup scale (Theme.popupScale): the popup size slider
+        // laid out 440 wide, scaled as a whole by the bar's popup scale;
+        // as tall as the content, and the share view fits into that
         implicitWidth: Math.round(440 * Theme.popupScale)
-        // as tall as its content; the share view fits itself into that
         implicitHeight: Math.min(Math.round((content.implicitHeight + 32) * Theme.popupScale),
                                  (screen ? screen.height : 1080) * 0.8)
         color: Theme.bg
 
-        // mango sizes a floating window once, when it maps, so it maps only
-        // after the first round of data is in (or after 1.5s regardless):
-        // it opens at its real size instead of a header-only strip
+        // mango sizes a floating window once, when it maps: map after the
+        // first round of data (or 1.5 s) so it opens at its real size
         property int _loaded: 0
         readonly property bool ready: _loaded >= 3
         visible: ready
@@ -94,8 +87,7 @@ ShellRoot {
         Component.onCompleted: refresh(false)
 
         function refresh(rescan) {
-            devProc.running = true
-            radioProc.running = true
+            _devsWanted = true
             savedProc.running = true
             detailsProc.running = true
             tsProc.running = true
@@ -108,10 +100,9 @@ ShellRoot {
             scanProc.running = true
         }
 
-        // the network a connect is under way for: if it fails wanting a
-        // password (a saved profile without one, a changed router password),
-        // its inline password field opens — mango runs no password dialog
-        // (secret agent) of its own
+        // the network being joined: if that fails for want of a password
+        // (none saved, or it changed), its password field opens, as no
+        // secret agent runs here
         property var trying: null
 
         function connectTo(net) {
@@ -204,60 +195,50 @@ ShellRoot {
 
         // --- state readers (accumulate lines, publish on exit) ---
 
-        property var _devs: []
-        Process {
-            id: devProc
-            command: ["nmcli", "-t", "-f", "DEVICE,TYPE,STATE,CONNECTION", "d"]
-            stdout: SplitParser {
-                onRead: line => {
-                    const p = line.split(":")
-                    if (p.length >= 3 && (p[1] === "ethernet" || p[1] === "wifi"))
-                        win._devs.push({ dev: p[0], type: p[1], state: p[2],
-                                         conn: p.slice(3).join(":") })
-                }
-            }
-            onRunningChanged: {
-                if (running) {
-                    win._devs = []
-                } else {
-                    win.devices = win._devs
-                    if (!win.ready) win._loaded++
-                }
-            }
-        }
-
-        Process {
-            id: radioProc
-            command: ["nmcli", "radio", "wifi"]
-            stdout: SplitParser {
-                onRead: line => win.wifiOn = (line.trim() === "enabled")
-            }
-        }
-
-        // default-route device, then address + gateway of every connected
-        // ethernet/wifi device, then NetworkManager's connectivity verdict
+        // every 5 s: the default-route device; each ethernet/wifi device
+        // ("d:" + nmcli's line), a connected one followed by its link speed,
+        // address and gateway; the Wi-Fi radio; NM's connectivity verdict.
+        // Devices and the radio are taken only for refresh(); one that asks
+        // mid-run gets a run of its own
+        property bool _devsWanted: false
         Process {
             id: detailsProc
+            property bool withDevs: false
+            onStarted: { withDevs = win._devsWanted; win._devsWanted = false }
+            onRunningChanged: if (!running && win._devsWanted) running = true
             command: ["sh", "-c",
                 "echo \"default:$(ip route show default 2>/dev/null | " +
                 "awk '{for (i = 1; i < NF; i++) if ($i == \"dev\") { print $(i + 1); exit }}')\"; " +
-                "nmcli -t -f DEVICE,TYPE,STATE d | while IFS=: read -r d t s; do " +
-                "  case \"$t:$s\" in ethernet:connected|wifi:connected) ;; *) continue ;; esac; " +
+                "nmcli -t -f DEVICE,TYPE,STATE,CONNECTION d | while IFS= read -r l; do " +
+                "  printf 'd:%s\\n' \"$l\"; " +
+                "  case \"$l\" in *:ethernet:connected:*|*:wifi:connected:*) ;; *) continue ;; esac; " +
+                "  d=${l%%:*}; " +
                 "  echo \"dev:$d:$(cat /sys/class/net/$d/speed 2>/dev/null)\"; " +
                 "  nmcli -g IP4.ADDRESS,IP4.GATEWAY device show \"$d\"; " +
                 "done; " +
+                "echo \"radio:$(nmcli radio wifi)\"; " +
                 "echo \"conn:$(nmcli networking connectivity)\""]
             stdout: StdioCollector {
                 onStreamFinished: {
                     const lines = text.split("\n")
                     const addrs = {}
+                    const devs = []
+                    let radio = win.wifiOn
                     for (let i = 0; i < lines.length; i++) {
                         const l = lines[i]
                         if (l.startsWith("default:"))
                             win.defaultDev = l.slice(8)
                         else if (l.startsWith("conn:"))
                             win.connectivity = l.slice(5) || "unknown"
-                        else if (l.startsWith("dev:")) {
+                        else if (l.startsWith("radio:") && l.trim() !== "radio:")
+                            radio = l.slice(6).trim() === "enabled"
+                        else if (l.startsWith("d:")) {
+                            // DEVICE:TYPE:STATE:CONNECTION
+                            const p = l.slice(2).split(":")
+                            if (p.length >= 3 && (p[1] === "ethernet" || p[1] === "wifi"))
+                                devs.push({ dev: p[0], type: p[1], state: p[2],
+                                            conn: p.slice(3).join(":") })
+                        } else if (l.startsWith("dev:")) {
                             // dev:<name>:<link Mb/s>, then "10.0.0.5/24 | fe80::…"
                             // (first address, no prefix) and the gateway
                             const f = l.split(":")
@@ -268,6 +249,11 @@ ShellRoot {
                         }
                     }
                     win.addrs = addrs
+                    if (detailsProc.withDevs) {
+                        win.devices = devs
+                        win.wifiOn = radio
+                        if (!win.ready) win._loaded++
+                    }
                 }
             }
         }
@@ -276,7 +262,10 @@ ShellRoot {
             interval: 5000
             running: true
             repeat: true
-            onTriggered: { detailsProc.running = true; tsProc.running = true }
+            onTriggered: {
+                detailsProc.running = true
+                if (win.tsInstalled) tsProc.running = true
+            }
         }
 
         Process {
@@ -304,18 +293,19 @@ ShellRoot {
         property var _saved: ({})
         property var _noPw: ({})
         property var _vpns: []
-        // saved profiles: Wi-Fi ones by the SSID they join (a profile named
-        // "Wi-Fi connection 1" is still HomeNet), VPNs by name.
-        // Terse nmcli escapes ":" as "\:"; the name/SSID comes last.
+        // saved profiles: Wi-Fi by the SSID it joins (profile names often
+        // aren't the SSID), VPNs by name. Terse nmcli escapes ":" as "\:";
+        // the name/SSID comes last. A profile with no security setting
+        // prints only its SSID line, so the SSID is asked for first.
         Process {
             id: savedProc
             command: ["sh", "-c",
                 "nmcli -t -f UUID,TYPE,ACTIVE,NAME c show | while IFS=: read -r uuid type active name; do " +
                 "  case \"$type\" in " +
                 "    *wireless*) " +
-                "      km=$(nmcli -g 802-11-wireless-security.key-mgmt c show \"$uuid\" 2>/dev/null); " +
-                "      fl=$(nmcli -g 802-11-wireless-security.psk-flags c show \"$uuid\" 2>/dev/null); " +
-                "      echo \"wifi:$uuid:$km:${fl%% *}:$(nmcli -g 802-11-wireless.ssid c show \"$uuid\")\" ;; " +
+                "      nmcli -g 802-11-wireless.ssid,802-11-wireless-security.key-mgmt," +
+                "802-11-wireless-security.psk-flags c show \"$uuid\" 2>/dev/null | " +
+                "      { IFS= read -r s; read -r km; read -r fl; echo \"wifi:$uuid:$km:${fl%% *}:$s\"; } ;; " +
                 "    vpn|wireguard|tun) echo \"$type:$active:$name\" ;; " +
                 "  esac; " +
                 "done"]
@@ -337,9 +327,8 @@ ShellRoot {
                         }
                         return
                     }
-                    const rest = p.slice(2).join(":").replace(/\\:/g, ":")
+                    const name = p.slice(2).join(":").replace(/\\:/g, ":")
                     const active = p[1] === "yes"
-                    const name = rest
                     if (type === "vpn" || type === "wireguard")
                         win._vpns.push({ name: name, active: active,
                                          external: false })
@@ -366,11 +355,11 @@ ShellRoot {
             }
         }
 
-        // --- Tailscale (when installed): a first-class VPN row, not the
-        // read-only "tailscale0" tun profile NetworkManager auto-creates.
-        // Reads need nothing; up/down/exit-node need root OR the operator
-        // grant — the first action asks (pkexec) to set that once, then
-        // every later toggle is silent.
+        // --- Tailscale, when installed: its own VPN row in place of the
+        // read-only tailscale0 profile NetworkManager creates. Up, down and
+        // exit nodes need root or the operator role: the first action sets
+        // that once through pkexec. Polled only while it is installed.
+        property bool tsInstalled: true
         property bool tsPresent: false
         property string tsState: ""     // Running / Stopped / NeedsLogin
         property string tsIp: ""
@@ -382,7 +371,8 @@ ShellRoot {
         property bool tsPick: false     // exit-node list expanded
         Process {
             id: tsProc
-            command: ["sh", "-c", "command -v tailscale >/dev/null 2>&1 && tailscale status --json 2>/dev/null"]
+            command: ["sh", "-c", "command -v tailscale >/dev/null 2>&1 || exit 127; tailscale status --json 2>/dev/null"]
+            onExited: code => win.tsInstalled = code !== 127
             stdout: StdioCollector {
                 onStreamFinished: {
                     if (text.trim() === "") {
@@ -492,36 +482,35 @@ ShellRoot {
             interval: 1000
             running: true
             repeat: true
-            onTriggered: speedProc.running = true
+            onTriggered: netDev.reload()
         }
-        Process {
-            id: speedProc
-            command: ["cat", "/proc/net/dev"]
-            stdout: StdioCollector {
-                onStreamFinished: {
-                    const now = Date.now()
-                    const prev = win._netPrev
-                    const next = {}
-                    const rates = {}
-                    for (const line of text.split("\n")) {
-                        const m = line.trim().match(/^(\S+):\s*(.*)$/)
-                        if (!m || m[1] === "lo")
-                            continue
-                        const f = m[2].trim().split(/\s+/)
-                        const rx = parseInt(f[0]) || 0
-                        const tx = parseInt(f[8]) || 0
-                        next[m[1]] = { rx: rx, tx: tx, t: now }
-                        if (prev[m[1]]) {
-                            const dt = (now - prev[m[1]].t) / 1000
-                            if (dt > 0)
-                                rates[m[1]] = {
-                                    down: Math.max(0, (rx - prev[m[1]].rx) / dt),
-                                    up: Math.max(0, (tx - prev[m[1]].tx) / dt) }
-                        }
+        FileView {
+            id: netDev
+            path: "/proc/net/dev"
+            preload: false
+            onLoaded: {
+                const now = Date.now()
+                const prev = win._netPrev
+                const next = {}
+                const rates = {}
+                for (const line of text().split("\n")) {
+                    const m = line.trim().match(/^(\S+):\s*(.*)$/)
+                    if (!m || m[1] === "lo")
+                        continue
+                    const f = m[2].trim().split(/\s+/)
+                    const rx = parseInt(f[0]) || 0
+                    const tx = parseInt(f[8]) || 0
+                    next[m[1]] = { rx: rx, tx: tx, t: now }
+                    if (prev[m[1]]) {
+                        const dt = (now - prev[m[1]].t) / 1000
+                        if (dt > 0)
+                            rates[m[1]] = {
+                                down: Math.max(0, (rx - prev[m[1]].rx) / dt),
+                                up: Math.max(0, (tx - prev[m[1]].tx) / dt) }
                     }
-                    win._netPrev = next
-                    win.netRates = rates
                 }
+                win._netPrev = next
+                win.netRates = rates
             }
         }
 
@@ -538,10 +527,9 @@ ShellRoot {
         }
 
         // --- share the Wi-Fi you're on: a QR code a phone scans to join ---
-        // The password comes from NetworkManager (your desktop session may
-        // read it) and goes to qrencode over stdin — never an argument other
-        // users could see in ps, never a file: the PNG comes back base64
-        // and lives in memory until the share view closes.
+        // The password comes from NetworkManager and goes to qrencode on
+        // stdin, never as an argument (others see those in ps) or a file;
+        // the PNG comes back base64 and stays in memory until the view closes.
 
         property bool sharing: false
         property string shareSsid: ""
@@ -562,12 +550,14 @@ ShellRoot {
                 shareError = "Not connected to Wi-Fi"
                 return
             }
+            // an open network has no security setting, so only its first
+            // two lines come out: they are the ones always there
             shareInfoProc.command = ["sh", "-c",
                 "u=$(nmcli -g GENERAL.CON-UUID device show \"$1\"); " +
-                "echo \"ssid:$(nmcli -g 802-11-wireless.ssid c show \"$u\")\"; " +
-                "echo \"km:$(nmcli -g 802-11-wireless-security.key-mgmt c show \"$u\" 2>/dev/null)\"; " +
-                "echo \"hidden:$(nmcli -g 802-11-wireless.hidden c show \"$u\")\"; " +
-                "echo \"psk:$(nmcli -s -g 802-11-wireless-security.psk c show \"$u\" 2>/dev/null)\"",
+                "nmcli -s -g 802-11-wireless.ssid,802-11-wireless.hidden,802-11-wireless-security.key-mgmt," +
+                "802-11-wireless-security.psk c show \"$u\" 2>/dev/null | " +
+                "{ IFS= read -r s; read -r h; read -r k; IFS= read -r p; " +
+                "echo \"ssid:$s\"; echo \"km:$k\"; echo \"hidden:$h\"; echo \"psk:$p\"; }",
                 "sh", wifiDev]
             shareInfoProc.running = true
         }
@@ -683,10 +673,9 @@ ShellRoot {
             }
         }
 
-        // "Device <mac> <name…>" lines; known = Paired + Trusted (a device
-        // can be either, or both — dedupe by mac); a === marker splits
-        // known from connected, then "bat <mac> <pct>" for connected devices
-        // that report a battery (headsets, some mice) — one process for all
+        // "Device <mac> <name…>" lines: known = Paired + Trusted, deduped by
+        // mac; after the === marker the connected ones, each followed by
+        // "bat <mac> <pct>" when it reports a battery. One process for all
         property var _btPaired: []
         property var _btConn: []
         property var _btBat: ({})
@@ -696,9 +685,9 @@ ShellRoot {
             command: ["sh", "-c",
                 "bluetoothctl devices Paired 2>/dev/null; " +
                 "bluetoothctl devices Trusted 2>/dev/null; echo ===; " +
-                "bluetoothctl devices Connected 2>/dev/null; " +
-                "for m in $(bluetoothctl devices Connected 2>/dev/null | awk '{ print $2 }'); do " +
-                "  b=$(bluetoothctl info \"$m\" 2>/dev/null | sed -n 's/.*Battery Percentage:.*(\\([0-9]*\\)).*/\\1/p'); " +
+                "bluetoothctl devices Connected 2>/dev/null | while IFS= read -r l; do " +
+                "  printf '%s\\n' \"$l\"; m=${l#Device }; m=${m%% *}; " +
+                "  b=$(bluetoothctl info \"$m\" 2>/dev/null </dev/null | sed -n 's/.*Battery Percentage:.*(\\([0-9]*\\)).*/\\1/p'); " +
                 "  [ -n \"$b\" ] && echo \"bat $m $b\"; " +
                 "done"]
             stdout: SplitParser {
@@ -823,7 +812,6 @@ ShellRoot {
                     font.pixelSize: 13
                 }
                 Txt {
-                    id: btnText
                     anchors.verticalCenter: parent.verticalCenter
                     text: parent.parent.label
                 }
@@ -858,9 +846,208 @@ ShellRoot {
             }
         }
 
-        // a prompt that closes (password, hidden network, share) takes the
-        // keyboard with it: Escape and the rest come back to the content
-        // root only if it is given the focus again
+        // a list row: label left, note right; accent fill and a bold label
+        // while active
+        component ListRow: Rectangle {
+            id: lr
+            property string label
+            property string note
+            property color ink: Theme.fg
+            property color noteInk: Theme.disabled
+            property bool active: false
+            property bool elide: true
+            property bool allowed: true
+            property bool pointer: false
+            property int indent: 10
+            property int fadeMs: 120
+            property int buttons: Qt.LeftButton
+            signal clicked(int button)
+            width: parent.width
+            height: 32
+            radius: 8
+            color: active ? Qt.alpha(Theme.accent, 0.2)
+                 : lrMa.containsMouse ? Qt.alpha(Theme.fg, 0.08) : "transparent"
+            Behavior on color {
+                enabled: lr.fadeMs > 0
+                ColorAnimation { duration: lr.fadeMs }
+            }
+
+            Txt {
+                anchors.left: parent.left
+                anchors.leftMargin: lr.indent
+                anchors.right: lrNote.left
+                anchors.verticalCenter: parent.verticalCenter
+                text: lr.label
+                color: lr.ink
+                font.pixelSize: 12
+                font.bold: lr.active
+                elide: lr.elide ? Text.ElideRight : Text.ElideNone
+            }
+            Txt {
+                id: lrNote
+                anchors.right: parent.right
+                anchors.rightMargin: 10
+                anchors.verticalCenter: parent.verticalCenter
+                text: lr.note
+                color: lr.noteInk
+            }
+            MouseArea {
+                id: lrMa
+                anchors.fill: parent
+                hoverEnabled: true
+                enabled: lr.allowed
+                acceptedButtons: lr.buttons
+                cursorShape: lr.pointer && enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                onClicked: mouse => lr.clicked(mouse.button)
+            }
+        }
+
+        // a VPN: shield and name (green while up), a detail, and a switch,
+        // or "external" for a profile nmcli can't bring back up
+        component VpnRow: Item {
+            id: vr
+            property string name
+            property bool active: false
+            property bool external: false
+            property string detail
+            property color detailInk: Theme.disabled
+            property bool elide: false
+            signal toggled()
+            width: parent.width
+            height: 30
+
+            Txt {
+                id: vrName
+                anchors.left: parent.left
+                anchors.leftMargin: 10
+                anchors.verticalCenter: parent.verticalCenter
+                text: "󰦝  " + vr.name
+                color: vr.active ? Theme.green : Theme.fg
+                font.pixelSize: 12
+            }
+            Txt {
+                anchors.left: vrName.right
+                anchors.leftMargin: 12
+                anchors.right: vrSwitch.left
+                anchors.rightMargin: 12
+                anchors.verticalCenter: parent.verticalCenter
+                text: vr.detail
+                color: vr.detailInk
+                elide: vr.elide ? Text.ElideRight : Text.ElideNone
+            }
+            Txt {
+                visible: vr.external
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                text: vr.active ? "on · external" : "external"
+                color: vr.active ? Theme.green : Theme.disabled
+            }
+            Toggle {
+                id: vrSwitch
+                visible: !vr.external
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                on: vr.active
+                onColor: Theme.green
+                onToggled: vr.toggled()
+            }
+        }
+
+        // a password box with show/hide and join, Enter submits. Children
+        // go in the box; lead is the one the password follows
+        component PwField: Item {
+            id: pwf
+            property string placeholder: "password"
+            property Item lead: null
+            property bool grab: false
+            property bool showPw: false
+            property alias text: pwIn.text
+            default property alias content: pwBox.data
+            signal submit(string pw)
+            function focusPw() { pwIn.forceActiveFocus() }
+            width: parent.width
+            height: visible ? 38 : 0
+            onVisibleChanged: if (!visible) showPw = false
+
+            Rectangle {
+                id: pwBox
+                anchors.fill: parent
+                anchors.margins: 4
+                radius: 8
+                color: Qt.alpha(Theme.fg, 0.08)
+
+                TextInput {
+                    id: pwIn
+                    anchors.left: pwf.lead ? pwf.lead.right : parent.left
+                    anchors.right: pwEye.left
+                    anchors.leftMargin: 10
+                    anchors.rightMargin: 6
+                    anchors.verticalCenter: parent.verticalCenter
+                    echoMode: pwf.showPw ? TextInput.Normal : TextInput.Password
+                    color: Theme.fg
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 12
+                    focus: pwf.grab
+                    onAccepted: pwf.submit(text)
+                    Text {
+                        visible: pwIn.text === ""
+                        text: pwf.placeholder
+                        color: Theme.disabled
+                        font: pwIn.font
+                    }
+                }
+                // show / hide what you've typed
+                Rectangle {
+                    id: pwEye
+                    anchors.right: pwGo.left
+                    anchors.rightMargin: 6
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 26
+                    height: 24
+                    radius: 7
+                    color: pwEyeMa.containsMouse ? Qt.alpha(Theme.fg, 0.14) : "transparent"
+                    Txt {
+                        anchors.centerIn: parent
+                        text: pwf.showPw ? "󰈉" : "󰈈"
+                        color: Qt.alpha(Theme.fg, 0.7)
+                        font.pixelSize: 14
+                    }
+                    MouseArea {
+                        id: pwEyeMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            pwf.showPw = !pwf.showPw
+                            pwIn.forceActiveFocus()
+                        }
+                    }
+                }
+                Rectangle {
+                    id: pwGo
+                    anchors.right: parent.right
+                    anchors.rightMargin: 4
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 64
+                    height: 24
+                    radius: 7
+                    color: Theme.accent
+                    Txt {
+                        anchors.centerIn: parent
+                        text: "join"
+                        color: Theme.bg
+                        font.bold: true
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: pwf.submit(pwIn.text)
+                    }
+                }
+            }
+        }
+
+        // a closing prompt (password, hidden network, share) takes the
+        // keyboard with it: hand it back to the content root
         onPwForChanged: if (pwFor === "") uiRoot.forceActiveFocus()
         onHiddenOpenChanged: if (!hiddenOpen) uiRoot.forceActiveFocus()
         onSharingChanged: if (!sharing) uiRoot.forceActiveFocus()
@@ -874,10 +1061,9 @@ ShellRoot {
             scale: Theme.popupScale
             transformOrigin: Item.TopLeft
 
-            // Escape: cancel an open password prompt first, quit otherwise.
-            // Keys on the content root, not a Shortcut (those never fire in
-            // this window) — unhandled keys bubble up here from the focused
-            // password field, and this holds focus the rest of the time.
+            // Escape closes the share view or a prompt first, else quits.
+            // Keys, not a Shortcut (those never fire in this window): keys
+            // a focused field leaves unhandled bubble up to this root.
             focus: true
             Keys.onEscapePressed: {
                 if (win.sharing)
@@ -890,10 +1076,8 @@ ShellRoot {
                     Qt.quit()
             }
 
-            // share view: over everything else while open. The network's
-            // name as the heading, the code sized to whatever height the
-            // window has (it's only as tall as the list), dark on white
-            // because that's what phone cameras read.
+            // share view, over everything while open: the code sized to the
+            // window's height, dark on white because phone cameras read that
             Rectangle {
                 id: shareLayer
                 anchors.fill: parent
@@ -1149,45 +1333,21 @@ ShellRoot {
 
                     // Tailscale: name · state, toggle; exit-node picker below
                     // when the tailnet offers any
-                    Item {
+                    VpnRow {
                         visible: win.tsPresent
-                        width: parent.width
-                        height: 30
-
-                        Txt {
-                            id: tsName
-                            anchors.left: parent.left
-                            anchors.leftMargin: 10
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: "󰦝  Tailscale"
-                            color: win.tsState === "Running" ? Theme.green : Theme.fg
-                            font.pixelSize: 12
-                        }
-                        Txt {
-                            anchors.left: tsName.right
-                            anchors.leftMargin: 12
-                            anchors.right: tsToggle.left
-                            anchors.rightMargin: 12
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: win.tsState === "Running"
-                                ? win.tsIp + " · " + win.tsOnline + " online"
-                                  + (win.tsExit !== "" ? " · exit " + win.tsExit : "")
-                                  + (win.rateText("tailscale0") !== "" ? "  " + win.rateText("tailscale0") : "")
-                                : win.tsState === "NeedsLogin" ? "not logged in — click to log in"
-                                : "off"
-                            color: win.tsState === "NeedsLogin" ? Theme.accent : Theme.disabled
-                            elide: Text.ElideRight
-                        }
-                        Toggle {
-                            id: tsToggle
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            on: win.tsState === "Running"
-                            onColor: Theme.green
-                            onToggled: win.tsState === "NeedsLogin" ? win.tsLogin()
-                                : win.tsState === "Running" ? win.tsRun(["down"], "tailscale down…")
-                                : win.tsRun(["up"], "tailscale up…")
-                        }
+                        name: "Tailscale"
+                        active: win.tsState === "Running"
+                        detail: win.tsState === "Running"
+                            ? win.tsIp + " · " + win.tsOnline + " online"
+                              + (win.tsExit !== "" ? " · exit " + win.tsExit : "")
+                              + (win.rateText("tailscale0") !== "" ? "  " + win.rateText("tailscale0") : "")
+                            : win.tsState === "NeedsLogin" ? "not logged in — click to log in"
+                            : "off"
+                        detailInk: win.tsState === "NeedsLogin" ? Theme.accent : Theme.disabled
+                        elide: true
+                        onToggled: win.tsState === "NeedsLogin" ? win.tsLogin()
+                            : win.tsState === "Running" ? win.tsRun(["down"], "tailscale down…")
+                            : win.tsRun(["up"], "tailscale up…")
                     }
 
                     Item {
@@ -1214,46 +1374,24 @@ ShellRoot {
                         model: win.tsPresent && win.tsState === "Running" && win.tsPick
                             ? [{ name: "", online: true }].concat(win.tsExitNodes) : []
 
-                        Rectangle {
+                        ListRow {
                             id: exitRow
                             required property var modelData
-                            readonly property bool current: exitRow.modelData.name === win.tsExit
-                            width: parent.width
                             height: 28
-                            radius: 8
-                            color: current ? Qt.alpha(Theme.accent, 0.2)
-                                 : exitMa.containsMouse ? Qt.alpha(Theme.fg, 0.08) : "transparent"
-
-                            Txt {
-                                anchors.left: parent.left
-                                anchors.leftMargin: 26
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: exitRow.modelData.name === "" ? "none" : exitRow.modelData.name
-                                color: !exitRow.modelData.online ? Theme.disabled
-                                     : exitRow.current ? Theme.accent : Theme.fg
-                                font.pixelSize: 12
-                                font.bold: exitRow.current
-                            }
-                            Txt {
-                                visible: !exitRow.modelData.online
-                                anchors.right: parent.right
-                                anchors.rightMargin: 10
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "offline"
-                                color: Theme.disabled
-                            }
-                            MouseArea {
-                                id: exitMa
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                enabled: exitRow.modelData.online && !exitRow.current
-                                cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                onClicked: {
-                                    win.tsPick = false
-                                    win.tsRun(["set", "--exit-node=" + exitRow.modelData.name],
-                                              exitRow.modelData.name === "" ? "clearing exit node…"
-                                              : "exit via " + exitRow.modelData.name + "…")
-                                }
+                            indent: 26
+                            fadeMs: 0
+                            elide: false
+                            pointer: true
+                            active: modelData.name === win.tsExit
+                            allowed: modelData.online && !active
+                            label: modelData.name === "" ? "none" : modelData.name
+                            ink: !modelData.online ? Theme.disabled : active ? Theme.accent : Theme.fg
+                            note: modelData.online ? "" : "offline"
+                            onClicked: {
+                                win.tsPick = false
+                                win.tsRun(["set", "--exit-node=" + exitRow.modelData.name],
+                                          exitRow.modelData.name === "" ? "clearing exit node…"
+                                          : "exit via " + exitRow.modelData.name + "…")
                             }
                         }
                     }
@@ -1261,186 +1399,72 @@ ShellRoot {
                     Repeater {
                         model: win.vpnRows
 
-                        Item {
-                            id: vpnRow
+                        VpnRow {
                             required property var modelData
-                            width: parent.width
-                            height: 30
-
-                            Txt {
-                                id: vpnName
-                                anchors.left: parent.left
-                                anchors.leftMargin: 10
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "󰦝  " + vpnRow.modelData.name
-                                color: vpnRow.modelData.active ? Theme.green : Theme.fg
-                                font.pixelSize: 12
-                            }
-
-                            Txt {
-                                visible: vpnRow.modelData.active
-                                anchors.left: vpnName.right
-                                anchors.leftMargin: 12
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: win.rateText(vpnRow.modelData.name)
-                                color: Theme.disabled
-                            }
-
-                            Txt {
-                                visible: vpnRow.modelData.external
-                                anchors.right: parent.right
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: vpnRow.modelData.active ? "on · external" : "external"
-                                color: vpnRow.modelData.active ? Theme.green : Theme.disabled
-                            }
-
-                            Toggle {
-                                visible: !vpnRow.modelData.external
-                                anchors.right: parent.right
-                                anchors.verticalCenter: parent.verticalCenter
-                                on: vpnRow.modelData.active
-                                onColor: Theme.green
-                                onToggled: win.run(["nmcli", "c",
-                                    vpnRow.modelData.active ? "down" : "up",
-                                    "id", vpnRow.modelData.name],
-                                    (vpnRow.modelData.active ? "disconnecting " : "connecting ")
-                                    + vpnRow.modelData.name + "…")
-                            }
+                            name: modelData.name
+                            active: modelData.active
+                            external: modelData.external
+                            detail: active ? win.rateText(name) : ""
+                            onToggled: win.run(["nmcli", "c", active ? "down" : "up", "id", name],
+                                               (active ? "disconnecting " : "connecting ") + name + "…")
                         }
                     }
 
                     // Wi-Fi: networks you've used before, then new ones
-                    SectionLabel {
-                        visible: win.wifiDev !== "" && win.wifiOn
-                        text: "Known networks"
-                    }
-                    Txt {
-                        visible: win.wifiDev !== "" && win.wifiOn && win.knownNets.length === 0
-                        leftPadding: 10
-                        text: win.scanning ? "scanning…" : "none in range"
-                        color: Theme.disabled
-                        font.pixelSize: 12
-                    }
                     Repeater {
-                        model: win.wifiOn ? win.knownNets : []
-                        delegate: netDelegate
+                        model: ["Known networks", "Other networks"]
+
+                        Column {
+                            id: netSection
+                            required property string modelData
+                            required property int index
+                            readonly property var list: index ? win.otherNets : win.knownNets
+                            visible: win.wifiDev !== "" && win.wifiOn
+                            width: parent.width
+                            spacing: 8
+
+                            SectionLabel { text: netSection.modelData }
+                            Txt {
+                                visible: netSection.list.length === 0
+                                leftPadding: 10
+                                text: win.scanning ? "scanning…" : netSection.index ? "none found" : "none in range"
+                                color: Theme.disabled
+                                font.pixelSize: 12
+                            }
+                            Repeater {
+                                model: win.wifiOn ? netSection.list : []
+                                delegate: netDelegate
+                            }
+                        }
                     }
 
-                    SectionLabel {
-                        visible: win.wifiDev !== "" && win.wifiOn
-                        text: "Other networks"
-                    }
-                    Txt {
-                        visible: win.wifiDev !== "" && win.wifiOn && win.otherNets.length === 0
-                        leftPadding: 10
-                        text: win.scanning ? "scanning…" : "none found"
-                        color: Theme.disabled
-                        font.pixelSize: 12
-                    }
-                    Repeater {
-                        model: win.wifiOn ? win.otherNets : []
-                        delegate: netDelegate
-                    }
-
-                    // a network that isn't in the list because it hides its
-                    // name: opened by the footer's "hidden" button
-                    Item {
+                    // a network that hides its name, opened by the footer's
+                    // "hidden" button
+                    PwField {
                         id: hiddenRow
-                        property bool showPw: false
                         visible: win.hiddenOpen && win.wifiDev !== "" && win.wifiOn
-                        width: parent.width
-                        height: visible ? 38 : 0
-                        onVisibleChanged: if (!visible) { hiddenSsid.text = ""; hiddenPw.text = ""; showPw = false }
+                        placeholder: "password, if any"
+                        lead: hiddenSsid
+                        onVisibleChanged: if (!visible) { hiddenSsid.text = ""; hiddenRow.text = "" }
+                        onSubmit: pw => win.connectHidden(hiddenSsid.text, pw)
 
-                        Rectangle {
-                            anchors.fill: parent
-                            anchors.margins: 4
-                            radius: 8
-                            color: Qt.alpha(Theme.fg, 0.08)
-
-                            TextInput {
-                                id: hiddenSsid
-                                anchors.left: parent.left
-                                anchors.leftMargin: 10
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 130
-                                clip: true
-                                color: Theme.fg
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 12
-                                focus: win.hiddenOpen
-                                onAccepted: hiddenPw.forceActiveFocus()
-                                Text {
-                                    visible: hiddenSsid.text === ""
-                                    text: "network name"
-                                    color: Theme.disabled
-                                    font: hiddenSsid.font
-                                }
-                            }
-                            TextInput {
-                                id: hiddenPw
-                                anchors.left: hiddenSsid.right
-                                anchors.right: hiddenEye.left
-                                anchors.leftMargin: 10
-                                anchors.rightMargin: 6
-                                anchors.verticalCenter: parent.verticalCenter
-                                echoMode: hiddenRow.showPw ? TextInput.Normal : TextInput.Password
-                                color: Theme.fg
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 12
-                                onAccepted: win.connectHidden(hiddenSsid.text, text)
-                                Text {
-                                    visible: hiddenPw.text === ""
-                                    text: "password, if any"
-                                    color: Theme.disabled
-                                    font: hiddenPw.font
-                                }
-                            }
-                            Rectangle {
-                                id: hiddenEye
-                                anchors.right: hiddenGo.left
-                                anchors.rightMargin: 6
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 26
-                                height: 24
-                                radius: 7
-                                color: hiddenEyeMa.containsMouse ? Qt.alpha(Theme.fg, 0.14) : "transparent"
-                                Txt {
-                                    anchors.centerIn: parent
-                                    text: hiddenRow.showPw ? "󰈉" : "󰈈"
-                                    color: Qt.alpha(Theme.fg, 0.7)
-                                    font.pixelSize: 14
-                                }
-                                MouseArea {
-                                    id: hiddenEyeMa
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        hiddenRow.showPw = !hiddenRow.showPw
-                                        hiddenPw.forceActiveFocus()
-                                    }
-                                }
-                            }
-                            Rectangle {
-                                id: hiddenGo
-                                anchors.right: parent.right
-                                anchors.rightMargin: 4
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 64
-                                height: 24
-                                radius: 7
-                                color: Theme.accent
-                                Txt {
-                                    anchors.centerIn: parent
-                                    text: "join"
-                                    color: Theme.bg
-                                    font.bold: true
-                                }
-                                MouseArea {
-                                    anchors.fill: parent
-                                    onClicked: win.connectHidden(hiddenSsid.text, hiddenPw.text)
-                                }
+                        TextInput {
+                            id: hiddenSsid
+                            anchors.left: parent.left
+                            anchors.leftMargin: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 130
+                            clip: true
+                            color: Theme.fg
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 12
+                            focus: win.hiddenOpen
+                            onAccepted: hiddenRow.focusPw()
+                            Text {
+                                visible: hiddenSsid.text === ""
+                                text: "network name"
+                                color: Theme.disabled
+                                font: hiddenSsid.font
                             }
                         }
                     }
@@ -1480,91 +1504,33 @@ ShellRoot {
                     Repeater {
                         model: win.btPresent && win.btOn ? win.btDevices : []
 
-                        Rectangle {
+                        ListRow {
                             id: btRow
                             required property var modelData
-                            width: parent.width
-                            height: 32
-                            radius: 8
-                            color: btRow.modelData.connected ? Qt.alpha(Theme.accent, 0.2)
-                                 : btMa.containsMouse ? Qt.alpha(Theme.fg, 0.08)
-                                 : "transparent"
-
-                            Behavior on color { ColorAnimation { duration: 120 } }
-
-                            Txt {
-                                anchors.left: parent.left
-                                anchors.leftMargin: 10
-                                anchors.right: btState.left
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "󰂯  " + btRow.modelData.name
-                                color: btRow.modelData.connected ? Theme.accent : Theme.fg
-                                font.pixelSize: 12
-                                font.bold: btRow.modelData.connected
-                                elide: Text.ElideRight
-                            }
-                            Txt {
-                                id: btState
-                                anchors.right: parent.right
-                                anchors.rightMargin: 10
-                                anchors.verticalCenter: parent.verticalCenter
-                                // battery after "connected" when the device reports one
-                                text: btRow.modelData.connected
-                                    ? "connected" + (btRow.modelData.battery >= 0 ? " · " + btRow.modelData.battery + "%" : "")
-                                    : "paired"
-                                color: btRow.modelData.connected
-                                    ? (btRow.modelData.battery >= 0 && btRow.modelData.battery <= 15 ? Theme.alert : Theme.green)
-                                    : Theme.disabled
-                            }
-                            MouseArea {
-                                id: btMa
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                acceptedButtons: Qt.LeftButton | Qt.RightButton
-                                onClicked: mouse => mouse.button === Qt.RightButton
-                                    ? win.btForget(btRow.modelData)
-                                    : win.btToggleDevice(btRow.modelData)
-                            }
+                            readonly property var battery: modelData.battery
+                            active: modelData.connected
+                            label: "󰂯  " + modelData.name
+                            ink: active ? Theme.accent : Theme.fg
+                            // battery after "connected" when the device reports one
+                            note: active ? "connected" + (battery >= 0 ? " · " + battery + "%" : "") : "paired"
+                            noteInk: !active ? Theme.disabled
+                                   : battery >= 0 && battery <= 15 ? Theme.alert : Theme.green
+                            buttons: Qt.LeftButton | Qt.RightButton
+                            onClicked: button => button === Qt.RightButton
+                                ? win.btForget(btRow.modelData)
+                                : win.btToggleDevice(btRow.modelData)
                         }
                     }
 
                     Repeater {
                         model: win.btPresent && win.btOn ? win.btFound : []
 
-                        Rectangle {
-                            id: btNewRow
+                        ListRow {
                             required property var modelData
-                            width: parent.width
-                            height: 32
-                            radius: 8
-                            color: btNewMa.containsMouse ? Qt.alpha(Theme.fg, 0.08) : "transparent"
-
-                            Behavior on color { ColorAnimation { duration: 120 } }
-
-                            Txt {
-                                anchors.left: parent.left
-                                anchors.leftMargin: 10
-                                anchors.right: btNewTag.left
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "󰂱  " + btNewRow.modelData.name
-                                color: Qt.alpha(Theme.fg, 0.7)
-                                font.pixelSize: 12
-                                elide: Text.ElideRight
-                            }
-                            Txt {
-                                id: btNewTag
-                                anchors.right: parent.right
-                                anchors.rightMargin: 10
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "pair"
-                                color: Theme.disabled
-                            }
-                            MouseArea {
-                                id: btNewMa
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                onClicked: win.btPairNew(btNewRow.modelData)
-                            }
+                            label: "󰂱  " + modelData.name
+                            ink: Qt.alpha(Theme.fg, 0.7)
+                            note: "pair"
+                            onClicked: win.btPairNew(modelData)
                         }
                     }
 
@@ -1621,8 +1587,6 @@ ShellRoot {
                 id: netRow
                 required property var modelData
                 readonly property bool asking: win.pwFor === modelData.ssid
-                property bool showPw: false
-                onAskingChanged: if (!asking) showPw = false
                 readonly property bool saved: win.savedWifi.indexOf(modelData.ssid) !== -1
                 width: content.width
 
@@ -1690,88 +1654,10 @@ ShellRoot {
                 }
 
                 // inline password entry for new secured networks
-                Item {
+                PwField {
                     visible: netRow.asking
-                    width: parent.width
-                    height: visible ? 38 : 0
-
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: 4
-                        radius: 8
-                        color: Qt.alpha(Theme.fg, 0.08)
-
-                        TextInput {
-                            id: pwInput
-                            anchors.left: parent.left
-                            anchors.right: eyeBtn.left
-                            anchors.leftMargin: 10
-                            anchors.rightMargin: 6
-                            anchors.verticalCenter: parent.verticalCenter
-                            echoMode: netRow.showPw ? TextInput.Normal : TextInput.Password
-                            color: Theme.fg
-                            font.family: Theme.fontFamily
-                            font.pixelSize: 12
-                            focus: netRow.asking
-                            onAccepted: win.connectPw(netRow.modelData.ssid, text)
-
-                            Text {
-                                visible: pwInput.text === ""
-                                text: "password"
-                                color: Theme.disabled
-                                font: pwInput.font
-                            }
-                        }
-
-                        // show / hide what you've typed
-                        Rectangle {
-                            id: eyeBtn
-                            anchors.right: goBtn.left
-                            anchors.rightMargin: 6
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 26
-                            height: 24
-                            radius: 7
-                            color: eyeMa.containsMouse ? Qt.alpha(Theme.fg, 0.14) : "transparent"
-                            Txt {
-                                anchors.centerIn: parent
-                                text: netRow.showPw ? "󰈉" : "󰈈"
-                                color: Qt.alpha(Theme.fg, 0.7)
-                                font.pixelSize: 14
-                            }
-                            MouseArea {
-                                id: eyeMa
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    netRow.showPw = !netRow.showPw
-                                    pwInput.forceActiveFocus()
-                                }
-                            }
-                        }
-
-                        Rectangle {
-                            id: goBtn
-                            anchors.right: parent.right
-                            anchors.rightMargin: 4
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 64
-                            height: 24
-                            radius: 7
-                            color: Theme.accent
-                            Txt {
-                                anchors.centerIn: parent
-                                text: "join"
-                                color: Theme.bg
-                                font.bold: true
-                            }
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: win.connectPw(netRow.modelData.ssid, pwInput.text)
-                            }
-                        }
-                    }
+                    grab: netRow.asking
+                    onSubmit: pw => win.connectPw(netRow.modelData.ssid, pw)
                 }
             }
         }

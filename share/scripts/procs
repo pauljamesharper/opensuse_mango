@@ -73,7 +73,7 @@ BEGIN {
         RS = "\0"
         name = ""
         if ((getline arg0 < (pid "/cmdline")) > 0) {
-            sub(/ .*/, "", arg0)     # "sshd: drew@pts/0" rewrites
+            sub(/ .*/, "", arg0)     # "sshd: user@pts/0" rewrites
             sub(/.*\//, "", arg0)
             sub(/:$/, "", arg0)
             name = arg0

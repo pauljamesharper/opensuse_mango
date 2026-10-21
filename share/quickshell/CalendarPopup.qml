@@ -1,7 +1,7 @@
 import QtQuick
 
-// Month calendar popup anchored under the clock. Today gets an accent pill;
-// chevrons page months, clicking the header jumps back to today.
+// Month calendar popup under the clock. Today is highlighted; chevrons
+// page months, clicking the header jumps back to today.
 Popout {
     id: root
 
@@ -25,7 +25,6 @@ Popout {
             height: 28
 
             Txt {
-                id: prevBtn
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
                 text: "󰅁"

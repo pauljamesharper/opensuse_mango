@@ -1,13 +1,9 @@
 import QtQuick
-import Quickshell
 
-// The command menu's quick-settings tile: glyph, name, and the current
-// state underneath, so "Power profile / Balanced" says what it is AND
-// where it's at. On = accent fill; alert (mic muted, DND on) = red fill,
-// states you shouldn't forget. Left click runs modelData.run; right click
-// modelData.altFn (a fuller tool) when there is one. modelData.adjust
-// puts − / + after the state (the focus timer's length), visible instead
-// of hidden behind scroll or right-click.
+// The command menu's quick-settings tile: glyph, name, and the state
+// underneath. Accent fill = on, red = alert (a state not to forget).
+// Left click runs modelData.run, right click modelData.altFn (a fuller
+// tool) when set; modelData.adjust adds − / + after the state.
 Rectangle {
     id: tile
     required property var modelData

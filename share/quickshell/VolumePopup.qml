@@ -3,20 +3,10 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pipewire
 
-// Volume popup (right-click the Volume module), in sections:
-//   header — the output you're hearing, its level, a mute pill
-//   Output — volume slider; every audio output PipeWire knows, click one
-//     to make it the default (headphones vs speakers vs HDMI)
-//   Profile — a sound card's profile, when it has more than one: a card
-//     on "Analog Stereo Output" has no HDMI output to pick until it is on
-//     a HDMI profile (scripts/audio-profiles, pactl underneath; otherwise
-//     pavucontrol's Configuration tab)
-//   Input — only with a microphone: its level, a live meter (runs only
-//     while this is open), the microphones to pick from, a mute pill
-//   Apps — only while something plays: each app's own volume
-//   Mixer (pavucontrol) for the rest (routing, profiles).
-// All of it straight from the Pipewire service, so changes made anywhere
-// else show here too.
+// Volume popup (click the Volume module): the output and its mute pill,
+// volume and output picker, a card's profiles when it has more than one
+// (HDMI needs an HDMI profile), the microphone with a live meter, each
+// playing app's volume, and pavucontrol. Read live from PipeWire.
 Popout {
     id: root
     ipcNames: ["volume"]
@@ -24,9 +14,8 @@ Popout {
     cardWidth: 340
     cardHeight: col.implicitHeight + 2 * cardPadding
 
-    // Filters use only what PipeWire announces up front (sink/stream, node
-    // name): a node's audio and properties arrive after it's bound, and a
-    // list that changed with them would bind, unbind and rebind forever.
+    // filter only on what a node has before it's bound (type, name), or
+    // binding would change the list and rebind it forever
     readonly property var sinks: Pipewire.nodes.values.filter(n => n.isSink && !n.isStream)
     // microphones only: cameras are non-stream nodes too
     readonly property var sources: Pipewire.nodes.values.filter(n => n.type === PwNodeType.AudioSource)
@@ -45,7 +34,7 @@ Popout {
         return groups
     }
 
-    // bound so their audio state (volume, mute) stays live while listed
+    // bound so their volume and mute stay live
     PwObjectTracker { objects: root.sinks.concat(root.sources, root.outStreams) }
 
     // the cards' profiles, read when the popup opens and after a change
@@ -85,9 +74,8 @@ Popout {
 
     readonly property var current: Pipewire.defaultAudioSink
     readonly property var audio: current?.audio ?? null
-    // the default source only if it really is a microphone: with none
-    // chosen, PipeWire can hand back an output here (butterbian does),
-    // and "mute input" would mute the speakers
+    // the default source only if it is a microphone: with none chosen,
+    // PipeWire can hand back an output, and "mute input" would mute it
     readonly property var mic: Pipewire.defaultAudioSource?.type === PwNodeType.AudioSource
                                ? Pipewire.defaultAudioSource : null
     readonly property var micAudio: mic?.audio ?? null
@@ -109,89 +97,24 @@ Popout {
         return a ? Math.round(a.volume * 100) : 0
     }
 
-    // mute pill: soft like the bar's pills, red while muted
-    component MutePill: Rectangle {
-        property bool muted: false
-        signal toggled()
-        width: muteText.implicitWidth + 36
-        height: 24
-        radius: 8
-        color: muted ? Theme.red
-             : muteMa.containsMouse ? Qt.alpha(Theme.fg, 0.14) : Qt.alpha(Theme.fg, 0.07)
-        Behavior on color { ColorAnimation { duration: 150 } }
-        Row {
-            anchors.centerIn: parent
-            spacing: 6
-            Txt {
-                anchors.verticalCenter: parent.verticalCenter
-                text: parent.parent.muted ? "󰖁" : "󰕾"
-                color: parent.parent.muted ? Theme.bg : Theme.cyan
-                font.pixelSize: 13
-            }
-            Txt {
-                id: muteText
-                anchors.verticalCenter: parent.verticalCenter
-                text: parent.parent.muted ? "muted" : "mute"
-                color: parent.parent.muted ? Theme.bg : Theme.fg
-                font.bold: parent.parent.muted
-            }
-        }
-        MouseArea {
-            id: muteMa
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: parent.toggled()
-        }
+    // red while muted
+    component MutePill: Btn {
+        glyph: active ? "󰖁" : "󰕾"
+        text: active ? "muted" : "mute"
+        activeColor: Theme.red
+        restColor: Qt.alpha(Theme.fg, 0.07)
+        ink: active ? Theme.bg : Theme.fg
+        padding: 36
+        fadeMs: 150
     }
 
-    // one device row: glyph, name; the default one highlighted
-    component DeviceRow: Rectangle {
-        id: dev
+    // the default device highlighted
+    component DeviceRow: ListRow {
         required property var modelData
         property var chosen: null
-        property string glyph: "󰓃"
-        signal picked()
-        readonly property bool active: modelData === chosen
-
-        width: parent.width
-        height: 32
-        radius: 8
-        color: active ? Qt.alpha(Theme.accent, 0.18)
-             : devMa.containsMouse ? Qt.alpha(Theme.fg, 0.12) : "transparent"
-
-        Behavior on color { ColorAnimation { duration: 120 } }
-
-        Txt {
-            id: devGlyph
-            anchors.left: parent.left
-            anchors.leftMargin: 10
-            anchors.verticalCenter: parent.verticalCenter
-            width: 16
-            horizontalAlignment: Text.AlignHCenter
-            text: dev.active ? "󰄬" : dev.glyph
-            color: dev.active ? Theme.accent : Theme.cyan
-            font.pixelSize: 14
-        }
-        Txt {
-            anchors.left: devGlyph.right
-            anchors.leftMargin: 10
-            anchors.right: parent.right
-            anchors.rightMargin: 10
-            anchors.verticalCenter: parent.verticalCenter
-            text: root.label(dev.modelData)
-            elide: Text.ElideRight
-            color: dev.active ? Theme.fg : Qt.alpha(Theme.fg, 0.9)
-            font.pixelSize: 12
-            font.bold: dev.active
-        }
-        MouseArea {
-            id: devMa
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: dev.picked()
-        }
+        active: modelData === chosen
+        check: true
+        text: root.label(modelData)
     }
 
     Column {
@@ -251,8 +174,8 @@ Popout {
                 id: outMute
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                muted: root.audio?.muted ?? false
-                onToggled: if (root.audio) root.audio.muted = !root.audio.muted
+                active: root.audio?.muted ?? false
+                onClicked: if (root.audio) root.audio.muted = !root.audio.muted
             }
         }
 
@@ -277,7 +200,7 @@ Popout {
             DeviceRow {
                 chosen: root.current
                 glyph: "󰓃"
-                onPicked: Pipewire.preferredDefaultAudioSink = modelData
+                onClicked: Pipewire.preferredDefaultAudioSink = modelData
             }
         }
 
@@ -300,45 +223,15 @@ Popout {
                 SectionLabel { text: root.cards.length > 1 ? "Profile · " + cardCol.modelData.desc : "Profile" }
                 Repeater {
                     model: cardCol.modelData.rows
-                    Rectangle {
-                        id: prof
+                    ListRow {
                         required property var modelData
-                        width: parent.width
                         height: 28
-                        radius: 8
-                        color: modelData.active ? Qt.alpha(Theme.accent, 0.18)
-                             : profMa.containsMouse ? Qt.alpha(Theme.fg, 0.12) : "transparent"
-                        Behavior on color { ColorAnimation { duration: 120 } }
-                        Txt {
-                            id: profGlyph
-                            anchors.left: parent.left
-                            anchors.leftMargin: 10
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 16
-                            horizontalAlignment: Text.AlignHCenter
-                            text: prof.modelData.active ? "󰄬" : "󰋋"
-                            color: prof.modelData.active ? Theme.accent : Theme.cyan
-                            font.pixelSize: 13
-                        }
-                        Txt {
-                            anchors.left: profGlyph.right
-                            anchors.leftMargin: 10
-                            anchors.right: parent.right
-                            anchors.rightMargin: 10
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: prof.modelData.label
-                            elide: Text.ElideRight
-                            color: prof.modelData.active ? Theme.fg : Qt.alpha(Theme.fg, 0.9)
-                            font.pixelSize: 12
-                            font.bold: prof.modelData.active
-                        }
-                        MouseArea {
-                            id: profMa
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.setProfile(prof.modelData.card, prof.modelData.profile)
-                        }
+                        glyphSize: 13
+                        glyph: "󰋋"
+                        check: true
+                        active: modelData.active
+                        text: modelData.label
+                        onClicked: root.setProfile(modelData.card, modelData.profile)
                     }
                 }
             }
@@ -360,8 +253,8 @@ Popout {
                 visible: root.micAudio !== null
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                muted: root.micAudio?.muted ?? false
-                onToggled: if (root.micAudio) root.micAudio.muted = !root.micAudio.muted
+                active: root.micAudio?.muted ?? false
+                onClicked: if (root.micAudio) root.micAudio.muted = !root.micAudio.muted
             }
         }
 
@@ -403,7 +296,7 @@ Popout {
             DeviceRow {
                 chosen: root.mic
                 glyph: "󰍬"
-                onPicked: Pipewire.preferredDefaultAudioSource = modelData
+                onClicked: Pipewire.preferredDefaultAudioSource = modelData
             }
         }
 
@@ -431,50 +324,18 @@ Popout {
             }
         }
 
-        Rectangle {
-            width: parent.width - 8
-            anchors.horizontalCenter: parent.horizontalCenter
-            height: 1
-            color: Qt.alpha(Theme.fg, 0.15)
-        }
+        Rectangle { width: parent.width - 8; anchors.horizontalCenter: parent.horizontalCenter; height: 1; color: Qt.alpha(Theme.fg, 0.15) }
 
-        Rectangle {
-            width: parent.width
+        ListRow {
             height: 34
-            radius: 8
-            color: mixMa.containsMouse ? Qt.alpha(Theme.fg, 0.12) : "transparent"
-
-            Behavior on color { ColorAnimation { duration: 120 } }
-
-            Row {
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.left: parent.left
-                anchors.leftMargin: 10
-                spacing: 10
-
-                Txt {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "󰕾"
-                    color: Theme.cyan
-                    font.pixelSize: 15
-                }
-                Txt {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "Mixer (pavucontrol)"
-                    color: Qt.alpha(Theme.fg, 0.9)
-                    font.pixelSize: 13
-                }
-            }
-
-            MouseArea {
-                id: mixMa
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    root.visible = false
-                    Quickshell.execDetached(["pavucontrol"])
-                }
+            glyphSize: 15
+            fontSize: 13
+            glyphWidth: 0
+            glyph: "󰕾"
+            text: "Mixer (pavucontrol)"
+            onClicked: {
+                root.visible = false
+                Quickshell.execDetached(["pavucontrol"])
             }
         }
     }

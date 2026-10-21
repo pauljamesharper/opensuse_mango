@@ -33,11 +33,13 @@ awk '$3 ~ /^(nvme[0-9]+n[0-9]+|sd[a-z]+|vd[a-z]+|xvd[a-z]+|mmcblk[0-9]+)$/ {
     }
     END { printf "io\t%d\t%d\n", r, w }' /proc/diskstats
 
+# read, not cat: no process per sensor
 for f in /sys/class/hwmon/hwmon*/temp*_input; do
     [ -r "$f" ] || continue
-    v=$(cat "$f" 2>/dev/null) || continue
+    v=; read -r v 2>/dev/null < "$f"
     [ -n "$v" ] || continue
-    dir=${f%/*}
-    label=$(cat "${f%_input}_label" 2>/dev/null) || label=$(basename "${f%_input}")
-    printf 'temp\t%s\t%s\t%s\n' "$(cat "$dir/name" 2>/dev/null)" "$label" "$((v / 1000))"
+    l=${f%_input}
+    if [ -r "${l}_label" ]; then label=; IFS= read -r label 2>/dev/null < "${l}_label"; else label=${l##*/}; fi
+    name=; IFS= read -r name 2>/dev/null < "${f%/*}/name"
+    printf 'temp\t%s\t%s\t%s\n' "$name" "$label" "$((v / 1000))"
 done

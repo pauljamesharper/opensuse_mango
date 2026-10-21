@@ -9,27 +9,7 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    // The setup's own files live in the share folder, the parent of this
-    // app dir — derived, never hardcoded. Replaced wholesale on update.
-    readonly property string shareDir: {
-        let sd = String(Quickshell.shellDir ?? "")
-        if (sd.startsWith("file://"))
-            sd = sd.slice(7)
-        return sd.substring(0, sd.lastIndexOf("/"))
-    }
-
-    // The user's folder: config.conf, keybinds.conf, local.conf and the
-    // wallpapers they add. Never replaced by an update.
-    readonly property string confDir: {
-        const env = String(Quickshell.env("XDG_CONFIG_HOME") ?? "")
-        const base = env !== "" ? env : String(Quickshell.env("HOME") ?? "") + "/.config"
-        return base + "/mango"
-    }
-
-    // Settings the bar keeps between restarts (bar height, weather
-    // location, kept monitor layouts...) live outside the config folder,
-    // in XDG_STATE_HOME, so reinstalling or updating the config never
-    // loses them. scripts/bar creates the folder and moves old files in.
+    // the bar's state folder, where colors.ini and popup-scale live
     readonly property string stateDir: {
         const env = String(Quickshell.env("XDG_STATE_HOME") ?? "")
         const base = env !== "" ? env : String(Quickshell.env("HOME") ?? "") + "/.local/state"
@@ -37,7 +17,6 @@ Singleton {
     }
 
     property color bg: "#0d1117"
-    property color altbg: "#161b22"
     property color fg: "#c9d1d9"
     property color accent: "#58a6ff"
     property color green: "#8b949e"
@@ -46,19 +25,17 @@ Singleton {
 
     readonly property string fontFamily: "JetBrainsMono Nerd Font"
 
-    // the bar's popup scale (its Theme.popupScale): the tweaks picker's
-    // popup size, read from the same popup-scale file
-    property real popupUserScale: 1.0
-    readonly property real popupScale: popupUserScale
+    // the bar's popup scale, read from the same file
+    property real popupScale: 1.0
 
     FileView {
         path: root.stateDir + "/popup-scale"
         watchChanges: true
         onFileChanged: reload()
-        onLoadFailed: root.popupUserScale = 1.0
+        onLoadFailed: root.popupScale = 1.0
         onLoaded: {
             const v = parseFloat(text())
-            root.popupUserScale = isNaN(v) ? 1.0 : Math.min(Math.max(v, 0.8), 2.0)
+            root.popupScale = isNaN(v) ? 1.0 : Math.min(Math.max(v, 0.8), 2.0)
         }
     }
 
@@ -77,7 +54,6 @@ Singleton {
                 map[m[1]] = m[2]
         }
         if (map["background"]) bg = map["background"]
-        if (map["background-alt"]) altbg = map["background-alt"]
         if (map["foreground"]) fg = map["foreground"]
         if (map["primary"]) accent = map["primary"]
         if (map["secondary"]) green = map["secondary"]

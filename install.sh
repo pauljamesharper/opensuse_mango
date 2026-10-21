@@ -1,14 +1,10 @@
 #!/bin/bash
 
-# MangoWC Setup Installer
-# Based on JustAGuy Linux Sway Setup
+# mangobutter installer (--only-config: the setup's files, no packages)
 
 set -e
 
-# Command line options
 ONLY_CONFIG=false
-
-# Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
         --only-config)
@@ -93,85 +89,48 @@ else
     msg "Skipping system update (--only-config mode)"
 fi
 
-# Package groups for better organization
-# awww: animated wallpaper daemon (butterrepo; formerly swww)
-PACKAGES_CORE=(
+# One apt run: a package it can't install is named in its error
+PACKAGES=(
+    # mango and the wallpaper daemon (butterrepo)
     mangowc xwayland awww
     build-essential
-)
-
-# quickshell pulls its qml6 modules in through Recommends
-# bluez, pulseaudio-utils, xdg-utils, pkexec and python3 back features
-# of the bar (Bluetooth rows, the timer chime, opening links, the
-# Tailscale grant, restoring a kept display layout); a full Debian
-# usually has them, a minimal one doesn't
-PACKAGES_BAR=(
+    # the bar; quickshell pulls its qml6 modules in through Recommends.
+    # bluez, pulseaudio-utils, xdg-utils, pkexec and python3 back features
+    # of the bar (Bluetooth rows, the timer chime, opening links, the
+    # Tailscale grant, restoring a kept display layout); a full Debian
+    # usually has them, a minimal one doesn't
     quickshell rofi dunst libnotify-bin btop
     pamixer playerctl brightnessctl wlsunset power-profiles-daemon
     network-manager-gnome network-manager-config-connectivity-debian qrencode
     bluez pulseaudio-utils xdg-utils pkexec python3
-)
-
-PACKAGES_WAYLAND=(
+    # Wayland tools
     grim slurp swappy wl-clipboard cliphist
     wlr-randr swayidle wlopm qml6-module-qtquick-effects
     xdg-desktop-portal-wlr xdg-desktop-portal-gtk
     x11-xserver-utils
-)
-
-PACKAGES_UI=(
     # gtk + icon themes (butterrepo: prebuilt vinceliuice selections, see deb-builders)
     orchis-gtk-theme-butter colloid-icon-theme-butter
     nwg-look xsettingsd lxpolkit
-)
-
-PACKAGES_FILE_MANAGER=(
+    # file manager
     thunar thunar-archive-plugin thunar-volman
     gvfs-backends gvfs-fuse dialog mtools smbclient cifs-utils unzip
-)
-
-PACKAGES_AUDIO=(
+    # audio
     pavucontrol pulsemixer pipewire-audio
-)
-
-PACKAGES_UTILITIES=(
+    # utilities
     avahi-daemon acpi acpid upower
     fd-find xdg-user-dirs-gtk
     butterview fastfetch
     gawk curl wget
-)
-
-PACKAGES_FONTS=(
+    # fonts
     fonts-recommended fonts-font-awesome fonts-noto-color-emoji
 )
 
-# Install packages by group
 if [ "$ONLY_CONFIG" = false ]; then
-    msg "Installing MangoWC (from butterrepo)..."
-    sudo apt-get install -y "${PACKAGES_CORE[@]}" || die "Failed to install core packages"
+    msg "Installing packages..."
+    sudo apt-get install -y "${PACKAGES[@]}" || die "Failed to install packages - apt names the one it could not install above"
 
-    msg "Installing bar and desktop shell..."
-    sudo apt-get install -y "${PACKAGES_BAR[@]}" || die "Failed to install bar packages"
-
-    msg "Installing Wayland components..."
-    sudo apt-get install -y "${PACKAGES_WAYLAND[@]}" || die "Failed to install Wayland packages"
-
-    msg "Installing UI components..."
-    sudo apt-get install -y "${PACKAGES_UI[@]}" || die "Failed to install UI packages"
-
-    msg "Installing file manager..."
-    sudo apt-get install -y "${PACKAGES_FILE_MANAGER[@]}" || die "Failed to install file manager"
-
-    msg "Installing audio support..."
-    sudo apt-get install -y "${PACKAGES_AUDIO[@]}" || die "Failed to install audio packages"
-
-    msg "Installing system utilities..."
-    sudo apt-get install -y "${PACKAGES_UTILITIES[@]}" || die "Failed to install utilities"
-
+    # on its own, allowed to fail: nothing else needs it
     sudo apt-get install -y firefox-esr 2>/dev/null || msg "Note: firefox-esr not available, skipping..."
-
-    msg "Installing fonts..."
-    sudo apt-get install -y "${PACKAGES_FONTS[@]}" || die "Failed to install fonts"
 
     # Enable services
     sudo systemctl enable avahi-daemon acpid
@@ -185,11 +144,10 @@ if [ "$ONLY_CONFIG" = false ]; then
         sudo usermod -aG render "$USER"
     fi
 
-    # Seat management. mango talks to the seat through libseat, which prefers
-    # a running seatd over logind. With a display manager (lightdm) the seat
-    # already belongs to logind, and two seat managers fighting over the GPU
-    # leaves mango unable to become DRM master (blank session, then a hung
-    # greeter). Nothing here needs seatd; make sure it isn't running.
+    # Seat management. mango's libseat prefers a running seatd over logind,
+    # but with a display manager the seat belongs to logind, and with two
+    # seat managers mango can't become DRM master (a blank session). Nothing
+    # here needs seatd; make sure it isn't running.
     if systemctl is-active --quiet seatd 2>/dev/null; then
         warn "seatd is running alongside logind — disabling it (mango uses logind for the seat)"
         sudo systemctl disable --now seatd
@@ -321,13 +279,10 @@ for f in "$SCRIPT_DIR"/state/*; do
 done
 generated "$SHARE_DIR/dunst/dunstrc" dunstrc share/dunst/dunstrc
 
-# Session environment ($CONFIG_DIR/env, just copied) is sourced by
-# mango-session, the login wrapper the mangowc package's session entry runs
-# from 0.14.4-4 on — that's how KITTY_CONFIG_DIRECTORY reaches the terminals
-# mango spawns, under any display manager. Older packages start the bare
-# binary and ignore the file. The session kitty config itself
-# ($SHARE_DIR/kitty, same layout as the dwm/bspwm/openbox setups) came in
-# with the config copy above.
+# $CONFIG_DIR/env is sourced at login by mango-session, the wrapper the
+# mangowc package's session entry runs from 0.14.4-4 on: that's how
+# KITTY_CONFIG_DIRECTORY (the session's kitty config in $SHARE_DIR/kitty)
+# reaches the terminals mango spawns. Older packages ignore the file.
 MANGO_VER=$(dpkg-query -W -f='${Version}' mangowc 2>/dev/null || true)
 if [ -z "$MANGO_VER" ]; then
     [ "$ONLY_CONFIG" = true ] && warn "mangowc is not installed - $CONFIG_DIR/env needs mangowc 0.14.4-4 or newer (butterrepo)"
@@ -389,21 +344,33 @@ if [ "$ONLY_CONFIG" = false ] && [ -f "$SCRIPT_DIR/nvidia-setup.sh" ]; then
     chmod +x "$HOME/nvidia-setup.sh"
 fi
 
-# Butterscript helper: get_script <path> [args passed to the script];
-# fails when the download does, rather than running nothing
+BUTTERSCRIPTS=https://justaguy.dev/drew/butterscripts/raw/branch/main
+# get_script <path> [args]: run a butterscript from memory; fails when the
+# download does, rather than running nothing
 get_script() {
     local script
-    script=$(wget -qO- "https://justaguy.dev/drew/butterscripts/raw/branch/main/$1") || return
+    script=$(wget -qO- "$BUTTERSCRIPTS/$1") || return
     bash -s -- "${@:2}" <<< "$script"
+}
+# fetch_script <path> <name> <hint>: save a butterscript to $TEMP_DIR, for
+# one that asks questions (run from a file it can read the terminal); a
+# failed download warns with the hint and returns 1
+fetch_script() {
+    msg "Downloading $2 installer..."
+    if wget -O "$TEMP_DIR/${1##*/}" "$BUTTERSCRIPTS/$1"; then
+        msg "Running $2 installer..."
+    else
+        warn "Could not download the $2 installer - $3"
+        return 1
+    fi
 }
 
 # Install essential components
 if [ "$ONLY_CONFIG" = false ]; then
     mkdir -p "$TEMP_DIR" && cd "$TEMP_DIR"
 
-    # --no-config: the session-local kitty config is vendored in
-    # $SHARE_DIR/kitty (like the dwm/bspwm/openbox setups); ~/.config/kitty
-    # is left alone
+    # --no-config: the session's kitty config is $SHARE_DIR/kitty;
+    # ~/.config/kitty is left alone
     msg "Installing kitty..."
     get_script "kitty/install_kitty.sh" --no-config \
         || warn "Kitty installation failed - you can install it manually later"
@@ -413,7 +380,7 @@ if [ "$ONLY_CONFIG" = false ]; then
     msg "Installing fonts..."
     get_script "theming/install_nerdfonts.sh" || warn "Font installation failed - you can install fonts manually later"
 
-    # the editor Super+E and the keybinds viewer open (config.conf, scripts/keybinds)
+    # the editor Super+E and the keybinds viewer open (keybinds.conf, scripts/keybinds)
     msg "Installing geany..."
     get_script "geany/install_geany.sh" \
         || warn "Geany installation failed - Super+E and editing from the keybinds viewer need an editor called geany"
@@ -432,14 +399,8 @@ if [ "$ONLY_CONFIG" = false ]; then
         msg "Wallpaper directory already exists, skipping..."
     fi
 
-    msg "Downloading display manager installer..."
-    if wget -O "$TEMP_DIR/install_lightdm.sh" "https://justaguy.dev/drew/butterscripts/raw/branch/main/system/install_lightdm.sh"; then
-        chmod +x "$TEMP_DIR/install_lightdm.sh"
-        msg "Running display manager installer..."
-        # Run in current terminal session to preserve interactivity
+    if fetch_script system/install_lightdm.sh "display manager" "you can install a login screen later"; then
         bash "$TEMP_DIR/install_lightdm.sh" || warn "Display manager installer failed - you can run it again later"
-    else
-        warn "Could not download the display manager installer - you can install a login screen later"
     fi
 
     # NVIDIA setup (auto-detects GPU and drivers)
@@ -454,30 +415,17 @@ if [ "$ONLY_CONFIG" = false ]; then
     # Optional tools
     read -p "Install optional tools (browsers, editors, etc)? (y/n) " -n 1 -r
     echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        msg "Downloading optional tools installer..."
-        if wget -O "$TEMP_DIR/optional_tools.sh" "https://justaguy.dev/drew/butterscripts/raw/branch/main/setup/optional_tools.sh"; then
-            chmod +x "$TEMP_DIR/optional_tools.sh"
-            msg "Running optional tools installer..."
-            if bash "$TEMP_DIR/optional_tools.sh"; then
-                msg "Optional tools completed successfully"
-            else
-                msg "Optional tools exited (this is normal if canceled by user)"
-            fi
+    if [[ $REPLY =~ ^[Yy]$ ]] && fetch_script setup/optional_tools.sh "optional tools" "you can run it later"; then
+        if bash "$TEMP_DIR/optional_tools.sh"; then
+            msg "Optional tools completed successfully"
         else
-            warn "Could not download the optional tools installer - you can run it later"
+            msg "Optional tools exited (this is normal if canceled by user)"
         fi
     fi
 else
     msg "Skipping external tool installation (--only-config mode)"
 fi
 
-# Run from inside the session (Update setup): finish the job here, so the
-# new files are live without a logout - mango reloads config.conf, the
-# bar restarts on the new QML (and re-applies the gaps and effects from
-# its state files as it starts, which is why reload_config goes first).
-# The terminal this runs in was started detached from the bar, so it
-# outlives the restart.
 # The default wallpaper has to exist for theme.conf's awww line: the
 # wallpaper folder is cloned once, on the first install, so a default that
 # changed since (or a config-only run on a bare machine) fetches that one file
@@ -488,13 +436,16 @@ if [ ! -f "$CONFIG_DIR/wallpaper/$DEFAULT_WALLPAPER" ]; then
         || { rm -f "$CONFIG_DIR/wallpaper/$DEFAULT_WALLPAPER"; warn "could not fetch the default wallpaper ($DEFAULT_WALLPAPER); pick one from the bar"; }
 fi
 
+# Run from inside the session (Update setup): finish the job here, so the
+# new files are live without a logout. The terminal this runs in was
+# started detached from the bar, so it outlives the restart.
 LIVE=false
 if [ "$ONLY_CONFIG" = true ] && [ -n "${WAYLAND_DISPLAY:-}" ] && pgrep -x -u "$USER" mango >/dev/null 2>&1; then
     LIVE=true
     # The bar first, on the new files, and wait until it answers: mango's
     # reload below runs the exec-once lines again (0.14), whose `bar start`
-    # is a no-op only once this bar is registered. Started side by side
-    # they raced to two bars.
+    # is a no-op only once this bar is registered; started side by side,
+    # both would start a bar.
     oldbar=" $(pgrep -x -u "$USER" qs | tr '\n' ' ')"
     ("$SHARE_DIR/scripts/bar" restart >/dev/null 2>&1 &)
     for _ in $(seq 1 50); do

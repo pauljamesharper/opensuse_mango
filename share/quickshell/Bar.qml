@@ -1,9 +1,9 @@
 import QtQuick
 import Quickshell
 
-// The bar window, effectiveBarHeight px tall. Under mango this is a
-// wlr-layer-shell panel: the compositor reserves its exclusive zone and
-// re-tiles live when the height changes — no struts, no placement fixups.
+// The bar window, effectiveBarHeight px tall: a layer-shell panel, so
+// mango reserves its exclusive zone and re-tiles live when the height
+// changes.
 PanelWindow {
     id: root
 
@@ -39,24 +39,20 @@ PanelWindow {
         Behavior on border.color { ColorAnimation { duration: 400 } }
 
         // A portrait monitor or a small laptop panel cannot hold every
-        // pill. When the two clusters would run into each other, the pills
+        // pill. When the clusters would run into each other, the pills
         // that only repeat what another window shows step aside: media
-        // first, then the CPU/RAM readout. Measured, not guessed: what the
-        // rest needs is summed without those two, so hiding one cannot
-        // change the answer and flip it back.
-        // (the cluster's children are the module loaders, each carrying
-        // its gap in its width; media and metrics are found by key)
-        // (the modules are slots in three zones, each carrying its gap in
-        // its width; media and metrics are found by key wherever they sit)
+        // first, then the CPU/RAM readout. The rest is summed without
+        // those two, so hiding one cannot flip the answer back. Each slot
+        // carries its gap in its width; media and metrics are found by key
+        // wherever they sit.
         function slotFor(key) {
             for (const c of [leftCluster, centerCluster, rightCluster])
                 for (let i = 0; i < c.children.length; i++)
                     if (c.children[i].key === key) return c.children[i]
             return null
         }
-        // summed slot by slot, skipping media and metrics, so neither's
-        // own visibility feeds back into the answer (a binding loop
-        // through the cluster widths otherwise)
+        // skipping media and metrics keeps their visibility out of the
+        // sum (a binding loop through the cluster widths otherwise)
         readonly property real restWidth: {
             let w = 56
             for (const c of [leftCluster, centerCluster, rightCluster])
@@ -82,13 +78,11 @@ PanelWindow {
             onClicked: BarIpc.call("settings", "open", "layout")
         }
 
-        // Three zones — left, center, right — each a Row of the modules
-        // Theme.modules puts there (the Bar tab's Modules lists), in order;
-        // a module that hides itself when idle (media, updates, caps lock)
-        // still does. The launcher opens the left zone and the command
-        // menu closes the right one, fixed: they host the popups.
-        // Looked up when a slot asks (a map built at construction would
-        // see the Component ids before they exist).
+        // Three zones, each a Row of the modules Theme.modules puts there
+        // (the Bar tab's Modules lists), in order. The launcher opens the
+        // left zone and the command menu closes the right one, fixed: they
+        // host the popups. Looked up when a slot asks: a map built at
+        // construction would see the Component ids before they exist.
         function componentFor(key) {
             switch (key) {
             case "tags": return cTags;          case "layout": return cLayout
@@ -118,11 +112,10 @@ PanelWindow {
         Component { id: cCapsLock; CapsLock {} }
         Component { id: cScreenshot; Screenshot {} }
 
-        // the room the window title has in its zone: what the zone's
-        // other members leave of the space between the neighbouring
-        // clusters (the title elides to it; under 40px it hides). The
-        // siblings are summed by hand so the title's own width is not in
-        // the sum (a binding loop otherwise).
+        // the room the window title has in its zone: the space between the
+        // neighbouring clusters less its siblings (it elides to that; under
+        // 40px it hides). Summed by hand to keep the title's own width out
+        // (a binding loop otherwise).
         function titleRoom(slot) {
             const c = slot.parent
             let others = 0

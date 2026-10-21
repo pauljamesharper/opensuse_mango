@@ -2,19 +2,16 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// What's using the machine: CPU and RAM bars, then the busiest programs.
-// Opens from the Metrics module. Per-program CPU comes from two
-// scripts/procs snapshots a couple of seconds apart (ps would give the
-// average since each process started), as a share of the whole machine,
-// so the rows add up to the bar's CPU number. Processes group by program
-// (helium ×12); click a column to sort. Sampling runs only while the card
-// is open. btop, at the bottom, has the full picture.
+// Metrics popup: CPU, RAM, temps, disks, then the busiest programs,
+// grouped by name; click a column to sort. Per-program CPU is the change
+// between two scripts/procs snapshots (ps gives the lifetime average), as
+// a share of the machine, so rows add up to the bar's number. Samples
+// only while open.
 //
-// Ending a program: hover a row for ✕, click it (the row turns red and the
-// list holds still), click the row again. That asks the listed processes
-// to quit (SIGTERM, so apps can save); if any are still there 3 seconds
-// later the row offers Force quit (SIGKILL). Only your own processes, and
-// never the desktop's own: the shared list below plus Wm.sessionProcs.
+// Ending a program: hover for ✕, click it (the row turns red and the list
+// holds still), click the row again for SIGTERM; still there after 3s,
+// the row offers Force quit (SIGKILL). Only your own processes, never the
+// session's: sharedSessionProcs plus Wm.sessionProcs.
 Popout {
     id: root
     ipcNames: ["metrics"]
@@ -46,7 +43,7 @@ Popout {
     property var frozen: null      // the list as it was when armed, so rows don't move
     property var ending: ({})      // name → {pids, at, stuck}
 
-    // processes every setup's session needs; Wm.sessionProcs adds the WM's own
+    // processes any session needs; Wm.sessionProcs adds the WM's own
     readonly property var sharedSessionProcs: /^(systemd|\(sd-pam\)|dbus-.*|pipewire.*|wireplumber|xdg-.*|gvfs.*|at-spi.*|dconf-service|gnome-keyring-daemon|ssh-agent|gpg-agent|lxpolkit|polkit-.*|dunst|qs|quickshell)$/
 
     cardWidth: 360
@@ -357,7 +354,8 @@ Popout {
     // column header that sorts on click
     component SortHeader: Txt {
         property string key
-        text: key.toUpperCase() + (root.sortBy === key ? " ▾" : "")
+        property string title: key.toUpperCase()
+        text: title + (root.sortBy === key ? " ▾" : "")
         color: root.sortBy === key ? Theme.accent : Qt.alpha(Theme.fg, 0.45)
         horizontalAlignment: Text.AlignRight
         font.pixelSize: 10
@@ -431,8 +429,7 @@ Popout {
 
             Meter {
                 required property var modelData
-                // a lock when the disk sits inside LUKS (Butterbian's
-                // "Encrypt system"): encrypted at rest, at a glance
+                // a lock when the disk sits inside LUKS
                 tag: (modelData.mount === "/" ? "/" : modelData.mount.split("/").pop())
                      + (modelData.encrypted ? " 󰌾" : "")
                 tint: Theme.yellow
@@ -509,7 +506,7 @@ Popout {
             SortHeader {
                 id: memHeader
                 key: "rss"
-                text: "MEM" + (root.sortBy === "rss" ? " ▾" : "")
+                title: "MEM"
                 width: 64
                 anchors.right: parent.right
                 anchors.rightMargin: 30
@@ -703,45 +700,20 @@ Popout {
             }
         }
 
-        Rectangle {
-            width: parent.width
-            height: 1
-            color: Qt.alpha(Theme.fg, 0.15)
-        }
+        Rectangle { width: parent.width; height: 1; color: Qt.alpha(Theme.fg, 0.15) }
 
-        Rectangle {
+        Btn {
             width: parent.width
             height: 30
-            radius: 8
-            color: btopMa.containsMouse ? Qt.alpha(Theme.fg, 0.12) : "transparent"
-
-            Behavior on color { ColorAnimation { duration: 120 } }
-
-            Row {
-                anchors.centerIn: parent
-                spacing: 8
-
-                Txt {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "󰍛"
-                    color: Theme.cyan
-                    font.pixelSize: 14
-                }
-                Txt {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "open btop"
-                    color: Qt.alpha(Theme.fg, 0.9)
-                    font.pixelSize: 12
-                }
-            }
-
-            MouseArea {
-                id: btopMa
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: root.openBtop()
-            }
+            glyph: "󰍛"
+            glyphSize: 14
+            text: "open btop"
+            fontSize: 12
+            spacing: 8
+            ink: Qt.alpha(Theme.fg, 0.9)
+            restColor: "transparent"
+            hoverColor: Qt.alpha(Theme.fg, 0.12)
+            onClicked: root.openBtop()
         }
     }
 }

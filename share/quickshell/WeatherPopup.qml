@@ -2,15 +2,11 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Three-day forecast under the weather indicator — the calendar idiom:
-// click the number, get the picture. Data comes from the same wttr.in
-// fetch the bar module already makes; no extra requests.
-// Settings live under the forecast: a location field (Enter pins it,
-// "auto" unpins it) and °F/°C/auto. They write the weather-location and
-// weather-units files Weather.qml watches, so a change refetches at once.
-// Right-click on the module opens the card with the field focused.
-// "radar" swaps the forecast for the last hour of rain on a map
-// (RadarView); the card grows to fit and comes back when you leave.
+// Weather popup: a three-day forecast from the bar module's own wttr.in
+// fetch, then a location field (Enter pins it, "auto" unpins it) and
+// units. They write the weather-location and weather-units state files
+// Weather.qml watches. Right-click the module to open with the field
+// focused. "radar" swaps the forecast for the last hour of rain (RadarView).
 Popout {
     id: root
     ipcNames: ["weather"]
@@ -33,8 +29,6 @@ Popout {
     property string location: ""
     property string units: ""
 
-    readonly property string locationFile: Theme.stateDir + "/weather-location"
-    readonly property string unitsFile: Theme.stateDir + "/weather-units"
     readonly property bool localeF: Qt.locale().measurementSystem !== Locale.MetricSystem
 
     cardWidth: radar ? 420 : 300
@@ -57,56 +51,40 @@ Popout {
         })
     }
 
-    // write or clear a settings file; the value goes in as an argument,
-    // never spliced into the shell string
-    function save(path, value) {
+    // write a settings state file, or remove it for "" (auto)
+    function save(name, value) {
         if (value === "")
-            Quickshell.execDetached(["rm", "-f", path])
+            Quickshell.execDetached(["rm", "-f", Theme.stateDir + "/" + name])
         else
-            Quickshell.execDetached(["sh", "-c", "printf '%s\\n' \"$1\" > \"$2\"",
-                                     "sh", value, path])
+            Theme.writeState(name, value)
     }
 
     function saveLocation() {
         const v = field.text.trim()
         field.text = v
         if (v !== location)
-            save(locationFile, v)
+            save("weather-location", v)
     }
 
-    // where this forecast is for — also the tell when a VPN exit node is
-    // fooling wttr.in's IP geolocation. A failed fetch says so here.
     // forecast ⇄ radar, top right (radar needs a located forecast)
-    Rectangle {
+    Btn {
         id: radarBtn
         visible: root.lat !== 0 || root.lon !== 0
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.topMargin: -4
-        width: radarText.implicitWidth + 16
+        active: root.radar
+        text: active ? "󰖎  forecast" : "󰖎  radar"
         height: 22
         radius: 7
-        color: root.radar ? Theme.accent
-             : radarMa.containsMouse ? Qt.alpha(Theme.fg, 0.14) : Qt.alpha(Theme.fg, 0.06)
-
-        Behavior on color { ColorAnimation { duration: 120 } }
-
-        Txt {
-            id: radarText
-            anchors.centerIn: parent
-            text: root.radar ? "󰖎  forecast" : "󰖎  radar"
-            color: root.radar ? Theme.bg : Qt.alpha(Theme.fg, 0.8)
-            font.pixelSize: 10
-        }
-        MouseArea {
-            id: radarMa
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: root.radar = !root.radar
-        }
+        padding: 16
+        fontSize: 10
+        bold: false
+        onClicked: root.radar = !root.radar
     }
 
+    // where the forecast is for (shows when a VPN fools wttr.in's
+    // geolocation), or that the fetch failed
     Txt {
         id: placeLine
         anchors.left: parent.left
@@ -202,11 +180,7 @@ Popout {
         anchors.bottom: parent.bottom
         spacing: 8
 
-        Rectangle {
-            width: parent.width
-            height: 1
-            color: Qt.alpha(Theme.fg, 0.15)
-        }
+        Rectangle { width: parent.width; height: 1; color: Qt.alpha(Theme.fg, 0.15) }
 
         // location: type + Enter pins it; "auto" goes back to by-IP
         Row {
@@ -273,30 +247,16 @@ Popout {
                 }
             }
 
-            Rectangle {
+            Btn {
                 id: autoBtn
                 visible: root.location !== ""
-                width: autoText.implicitWidth + 16
+                text: "auto"
                 height: 30
-                radius: 8
-                color: autoMa.containsMouse ? Qt.alpha(Theme.fg, 0.14) : Qt.alpha(Theme.fg, 0.06)
-
-                Txt {
-                    id: autoText
-                    anchors.centerIn: parent
-                    text: "auto"
-                    color: Qt.alpha(Theme.fg, 0.8)
-                }
-
-                MouseArea {
-                    id: autoMa
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        field.text = ""
-                        root.save(root.locationFile, "")
-                    }
+                padding: 16
+                fadeMs: 0
+                onClicked: {
+                    field.text = ""
+                    root.save("weather-location", "")
                 }
             }
         }
@@ -313,32 +273,13 @@ Popout {
                     { value: "c", label: "°C" }
                 ]
 
-                Rectangle {
-                    id: seg
+                Btn {
                     required property var modelData
-                    readonly property bool active: root.units === modelData.value
+                    active: root.units === modelData.value
+                    text: modelData.label
                     width: (parent.width - 2 * parent.spacing) / 3
                     height: 26
-                    radius: 8
-                    color: active ? Theme.accent
-                         : segMa.containsMouse ? Qt.alpha(Theme.fg, 0.14) : Qt.alpha(Theme.fg, 0.06)
-
-                    Behavior on color { ColorAnimation { duration: 120 } }
-
-                    Txt {
-                        anchors.centerIn: parent
-                        text: seg.modelData.label
-                        color: seg.active ? Theme.bg : Qt.alpha(Theme.fg, 0.8)
-                        font.bold: seg.active
-                    }
-
-                    MouseArea {
-                        id: segMa
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.save(root.unitsFile, seg.modelData.value)
-                    }
+                    onClicked: root.save("weather-units", modelData.value)
                 }
             }
         }

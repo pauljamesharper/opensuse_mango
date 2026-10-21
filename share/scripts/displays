@@ -15,7 +15,7 @@
 # rotation or mode.
 set -u
 
-# kept layouts are a setting: outside the config folder (see scripts/bar)
+# kept layouts are a setting, kept in the state folder
 state=${XDG_STATE_HOME:-$HOME/.local/state}/mango/displays.conf
 
 case "${1:-list}" in

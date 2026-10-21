@@ -2,11 +2,10 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Power menu (Super+x, or Power menu in the command menu): screen off, log
-// out, reboot, shut down. Arrows or j/k pick, Enter runs, or press the
-// row's letter. The three that end the session want a second press: the
-// first turns the row red, and it disarms after a few seconds. Logout goes
-// through Wm.logout(); everything else is the same on every setup.
+// Power menu (Super+x, or Power menu in the command menu): lock, screen
+// off, log out, reboot, shut down. Arrows or j/k pick, Enter runs, or press
+// the row's letter. The three that end the session want a second press:
+// the first turns the row red, and it disarms after a few seconds.
 Popout {
     id: root
     ipcNames: ["power"]

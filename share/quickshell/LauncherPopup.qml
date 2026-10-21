@@ -3,23 +3,14 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Widgets
 
-// App launcher (Super+space, or left-click the Debian swirl): a grid of
-// every installed app, centered on screen. Type to search (name, generic
-// name, keywords, program); arrows move, Enter launches, Esc clears and
-// then closes. Chips narrow it to Apps or Settings (the .desktop
-// "Settings" category: display, sound, GTK, power and the like — not the
-// broader "System", which also claims terminals and file managers);
-// Ctrl+Tab cycles them.
-// Actions: the bar's own tools (power menu, keybindings, wallpaper, what's
-// running, screen off, updates…) are searchable too, drawn as glyph tiles
-// so they read differently from apps. They show up in All once you type,
-// and all together under the Actions chip; most just open the popup their
-// shortcut opens, over the same IPC.
-// With nothing typed the grid is alphabetical, so every app keeps its
-// spot. How often and how recently you launch something (launcher-history
-// in the config folder) only breaks ties between search matches.
-// Icons follow the GTK icon theme: scripts/bar hands it to quickshell
-// through QS_ICON_THEME at start.
+// App launcher (Super+space, or left-click the Debian swirl): every
+// installed app in a grid. Type to search (name, generic name, keywords,
+// program); arrows move, Enter launches, Esc clears then closes. Chips
+// (Ctrl+Tab) narrow to Apps, Settings (the .desktop "Settings" category,
+// not the broader "System") or Actions: the bar's own tools as glyph
+// tiles, also in All once you type. With nothing typed the grid is A-Z;
+// launch history (the launcher-history state file) only breaks ties
+// between matches. Icons follow the GTK theme (QS_ICON_THEME, scripts/bar).
 Popout {
     id: root
     ipcNames: ["launcher"]
@@ -35,15 +26,9 @@ Popout {
     readonly property int cellH: 100
     readonly property string historyFile: Theme.stateDir + "/launcher-history"
 
-    // quickshell fills this in the background after start; the binding
-    // follows along, so an early open just shows what's scanned so far
-    // nwg-displays only speaks sway/Hyprland and quits on mango: the
-    // Displays action stands in for it
-    // quickshell fills the application list in the background after start,
-    // one entry at a time. Bound directly, every arrival re-ran the search
-    // and rebuilt the grid: quadratic in the number of apps, 18 s of main
-    // thread for 570 .desktop files, the bar undrawn and deaf to ipc the
-    // whole time. Coalesced here: the list is taken once the arrivals pause.
+    // the app list fills one entry at a time after start; taken once the
+    // arrivals pause, so the search doesn't rerun per entry. nwg-displays
+    // doesn't run on mango: the Displays action stands in for it.
     property var apps: []
     Connections {
         target: DesktopEntries.applications
@@ -65,7 +50,7 @@ Popout {
                () => openPopup("power")),
         action("keybinds", "Keybindings", "󰌌", "keys shortcuts hotkeys help cheatsheet",
                () => ipcCall("settings", "open", "keybinds")),
-        action("wallpaper", "Wallpaper", "󰋩", "background theme colors colors",
+        action("wallpaper", "Wallpaper", "󰋩", "background theme colors",
                () => ipcCall("settings", "open", "wallpaper")),
         action("layout", "Layout & tweaks", "󰕰", "tiling gaps borders blur shadows animations opacity bar height scale effects",
                () => ipcCall("settings", "open", "layout")),
@@ -156,10 +141,9 @@ Popout {
                  categories: [], run: fn, family: familyOf(id) }
     }
 
-    // Action tiles are tinted by family so a grid of them scans like app
-    // icons do, but the tints come from the theme: the accent's hue
-    // turned by a fixed amount per family (and the alert color for the
-    // ones that end your session), so they re-color with the wallpaper.
+    // action tiles are tinted by family so they scan like app icons: the
+    // accent's hue turned per family (alert for the session ones), so
+    // they follow the wallpaper
     readonly property var families: [
         { key: "system",  label: "System" },
         { key: "capture", label: "Screenshots" },
@@ -202,12 +186,9 @@ Popout {
     }
 
     function openPopup(target) { ipcCall(target, "toggle") }
-    function ipcCall(target, fn, arg) {
-        const cmd = ["qs", "-p", Theme.shareDir + "/quickshell", "ipc", "call", target, fn]
-        Quickshell.execDetached(arg !== undefined ? cmd.concat([arg]) : cmd)
-    }
+    function ipcCall(target, fn, arg) { BarIpc.call(target, fn, arg ?? "") }
 
-    // a script from the config folder: ["scripts/bar", "restart"]
+    // a script from the share folder: ["scripts/bar", "restart"]
     function run(argv) {
         Quickshell.execDetached([Theme.shareDir + "/" + argv[0]].concat(argv.slice(1)))
     }
@@ -277,8 +258,6 @@ Popout {
     function launch(a) {
         if (!a || a.spacer)
             return
-        if (!a)
-            return
         remember(a.id)
         root.visible = false
         if (a.isAction)
@@ -290,15 +269,14 @@ Popout {
     }
 
     // count + last launch per app id; the whole file is rewritten, one
-    // line per app, values passed as arguments (never spliced into sh)
+    // line per app
     function remember(id) {
         const h = Object.assign({}, history)
         const prev = h[id] ?? { count: 0, last: 0 }
         h[id] = { count: prev.count + 1, last: Math.floor(Date.now() / 1000) }
         history = h
         const lines = Object.keys(h).map(k => h[k].count + "\t" + h[k].last + "\t" + k)
-        Quickshell.execDetached(["sh", "-c", "f=$1; shift; printf '%s\\n' \"$@\" > \"$f\"",
-                                 "sh", historyFile].concat(lines))
+        Theme.writeState("launcher-history", lines.join("\n"))
     }
 
     function move(d) {
@@ -398,36 +376,16 @@ Popout {
             Repeater {
                 model: root.chips
 
-                Rectangle {
-                    id: chipItem
+                Btn {
                     required property string modelData
                     required property int index
-                    readonly property bool active: root.chip === index
-                    width: chipText.implicitWidth + 20
-                    height: 24
+                    active: root.chip === index
+                    text: modelData
+                    padding: 20
                     radius: 12
-                    color: active ? Theme.accent
-                         : chipMa.containsMouse ? Qt.alpha(Theme.fg, 0.14) : Qt.alpha(Theme.fg, 0.06)
-
-                    Behavior on color { ColorAnimation { duration: 120 } }
-
-                    Txt {
-                        id: chipText
-                        anchors.centerIn: parent
-                        text: chipItem.modelData
-                        color: chipItem.active ? Theme.bg : Qt.alpha(Theme.fg, 0.8)
-                        font.bold: chipItem.active
-                    }
-
-                    MouseArea {
-                        id: chipMa
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            root.chip = chipItem.index
-                            field.forceActiveFocus()
-                        }
+                    onClicked: {
+                        root.chip = index
+                        field.forceActiveFocus()
                     }
                 }
             }

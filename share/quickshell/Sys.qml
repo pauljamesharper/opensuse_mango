@@ -23,7 +23,6 @@ Singleton {
     property string netName: ""
     property string netType: ""
     property bool vpnOn: false
-    property string vpnName: ""
     property int wifiSignal: -1        // 0–100 while on Wi-Fi, -1 unknown
     // NetworkManager's verdict: full, limited, portal, none or unknown.
     // Real only while its connectivity check is on (Debian's
@@ -257,7 +256,7 @@ Singleton {
         stdout: StdioCollector {
             onStreamFinished: {
                 const parts = text.split("===\n")
-                let name = "", type = "", vName = "", vOn = false
+                let name = "", type = "", vOn = false
                 for (const line of (parts[0] ?? "").trim().split("\n")) {
                     const i = line.lastIndexOf(":")
                     if (i <= 0)
@@ -267,7 +266,6 @@ Singleton {
                         continue
                     if (t === "vpn" || t === "wireguard" || t === "tun") {
                         vOn = true
-                        vName = n
                     } else if (name === "") {
                         name = n
                         type = t
@@ -276,7 +274,6 @@ Singleton {
                 root.netName = name
                 root.netType = type
                 root.vpnOn = vOn
-                root.vpnName = vName
                 root.connectivity = (parts[1] ?? "").trim() || "unknown"
                 const sig = parseInt((parts[2] ?? "").trim().split(":")[1])
                 root.wifiSignal = type.indexOf("wireless") !== -1 && !isNaN(sig) ? sig : -1

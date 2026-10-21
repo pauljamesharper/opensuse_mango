@@ -3,16 +3,16 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Live palette sourced from the bspwm theme switcher. The switcher rewrites
-// the state folder's colors.ini in place on every switch, so watching
-// that file re-colors the bar with no restart — polybar itself can be
-// retired without breaking this. Defaults are github_dark placeholders.
-//
-// The polybar palette is smaller than dwm's xresources+ANSI set, so the
-// semantic names below collapse onto it: red→alert, yellow→primary,
-// blue/green/cyan/magenta→secondary. Cohesive by construction.
+// Live palette from the state folder's colors.ini, which
+// scripts/wallpaper-theme rewrites on every wallpaper change; watching it
+// re-colors the bar with no restart. Defaults are github_dark placeholders.
+// The file's palette is small, so the semantic names below collapse onto
+// it: red→alert, yellow→primary, blue/green/cyan/magenta→secondary.
 Singleton {
     id: root
+
+    // FileView watching a file, re-read whenever it changes
+    component StateFile: FileView { watchChanges: true; onFileChanged: reload() }
 
     // The setup's own files (this bar, the scripts, templates) live in
     // the share folder, the parent of the running quickshell dir — derived,
@@ -35,7 +35,7 @@ Singleton {
     // Settings the bar keeps between restarts (bar height, weather
     // location, kept monitor layouts...) live outside the config folder,
     // in XDG_STATE_HOME, so reinstalling or updating the config never
-    // loses them. scripts/bar creates the folder and moves old files in.
+    // loses them. scripts/bar creates the folder.
     readonly property string stateDir: {
         const env = String(Quickshell.env("XDG_STATE_HOME") ?? "")
         const base = env !== "" ? env : String(Quickshell.env("HOME") ?? "") + "/.local/state"
@@ -48,8 +48,8 @@ Singleton {
     property real barUserScale: 1.0
 
     // both state files attempted (present or not); bars gate their first
-    // map on this to appear once at final size (openbox re-clamps docks
-    // on resize). The timer failsafe guarantees the bar always maps.
+    // map on this to appear once, at final size. The timer failsafe
+    // guarantees the bar always maps.
     property int _barStateLoads: 0
     readonly property bool barStateReady: _barStateLoads >= 2
     Timer {
@@ -79,13 +79,11 @@ Singleton {
 
     readonly property string fontFamily: "JetBrainsMono Nerd Font"
 
-    // Resolution-aware base scale from the outputs' logical short side:
-    // 1.0 at 1080p, 1.33 at 1440p, 2.0 at unscaled 4K. An output scale set
-    // in mango (the proper hi-dpi fix) shrinks the logical size, so this
-    // stays at 1.0 there and nothing is scaled twice. The short side keeps
-    // portrait monitors from inflating it; with mixed outputs the smallest
-    // wins, so the result doesn't depend on output order and no bar is
-    // oversized (the scale slider bumps it up if wanted).
+    // Base scale from the outputs' logical short side: 1.0 at 1080p, 1.33
+    // at 1440p, 2.0 at unscaled 4K. A mango output scale shrinks the
+    // logical size, so nothing is scaled twice. The short side keeps
+    // portrait monitors from inflating it, and the smallest output wins so
+    // no bar is oversized (the scale slider bumps it up if wanted).
     readonly property real autoScale: {
         const screens = Quickshell.screens
         let side = 0
@@ -100,7 +98,7 @@ Singleton {
     // The bar's inset from the screen edges. Wm.qml sets mango's outer
     // gaps to the same value so windows float with the same margin.
     readonly property int edgeInset: Math.round(8 * autoScale)
-    // matches border_radius in config.conf
+    // matches border_radius in defaults.conf
     readonly property int barRadius: 8
 
     // In-bar elements follow autoScale × the scale slider. barHeight is a
@@ -112,18 +110,14 @@ Singleton {
     readonly property int moduleHeight: Math.round(26 * barScale)
     readonly property int effectiveBarHeight: Math.max(barHeight, moduleHeight + edgeInset + 8)
 
-    // Popups follow the "popup size" slider (tweaks picker, persisted to
-    // popup-scale) — not the screen resolution: at 1.0 they're the size
-    // they've always been, on any screen. Popout scales each card as a
-    // whole (text, icons, rows and layout together), so popups are written
-    // at one set of sizes and never need their own scaling.
+    // Popups follow the popup size slider (persisted to popup-scale), not
+    // the screen resolution. Popout scales each card as a whole, so popups
+    // are written at one set of sizes and never scale themselves.
     property real popupUserScale: 1.0
     readonly property real popupScale: popupUserScale
 
-    FileView {
+    StateFile {
         path: root.stateDir + "/bar-height"
-        watchChanges: true
-        onFileChanged: reload()
         onLoadFailed: root._barStateLoads++
         onLoaded: {
             root._barStateLoads++
@@ -133,10 +127,8 @@ Singleton {
         }
     }
 
-    FileView {
+    StateFile {
         path: root.stateDir + "/bar-scale"
-        watchChanges: true
-        onFileChanged: reload()
         onLoadFailed: root._barStateLoads++
         onLoaded: {
             root._barStateLoads++
@@ -149,9 +141,9 @@ Singleton {
     // the bar's modules: which zone each sits in (left, center, right),
     // in what order, shown or hidden — the Bar tab's Modules lists.
     // bar-modules holds one "zone key" per line, a "-" before the key
-    // for hidden (a bare key is the right zone: the file's first form);
-    // no file = the default below. Keys missing from the file (a module
-    // added later) are appended to their default zone. The launcher
+    // for hidden (a bare key means the right zone); no file = the
+    // default below. Keys missing from the file (a new module) are
+    // appended to their default zone. The launcher
     // (first, left) and the command menu (last, right) are fixed: they
     // host the launcher, settings, power and notification popups.
     readonly property var moduleDefs: [
@@ -189,32 +181,31 @@ Singleton {
     }
     function setModules(list) {
         modules = list
-        Quickshell.execDetached(["sh", "-c",
-            "printf '%s\\n' " + list.map(m => "'" + m.zone + " " + (m.on ? "" : "-") + m.key + "'").join(" ") + " > '" + root.stateDir + "/bar-modules'"])
+        writeState("bar-modules", list.map(m => m.zone + " " + (m.on ? "" : "-") + m.key).join("\n"))
     }
-    FileView {
+    // text and a newline to the state file name, as an argument, never
+    // spliced into the shell; after (argv, optional) runs once it's written
+    function writeState(name, text, after) {
+        Quickshell.execDetached(["sh", "-c", 'printf "%s\\n" "$2" > "$1" && shift 2 && exec "$@"',
+                                 "sh", stateDir + "/" + name, String(text)].concat(after ?? []))
+    }
+    StateFile {
         path: root.stateDir + "/bar-modules"
-        watchChanges: true
-        onFileChanged: reload()
         onLoaded: root.modules = root.parseModules(text())
         // the file deleted = back to the default
         onLoadFailed: root.modules = root.defaultModules()
     }
 
-    // not part of barStateReady: popups aren't open at start
-    // the Tags strip shows which apps sit on each tag (layout picker toggle)
+    // the Tags strip shows which apps sit on each tag (Bar tab toggle)
     property bool tagIcons: false
-    FileView {
+    StateFile {
         path: root.stateDir + "/tag-icons"
-        watchChanges: true
-        onFileChanged: reload()
         onLoaded: root.tagIcons = text().trim() === "1"
     }
 
-    FileView {
+    // not part of barStateReady: popups aren't open at start
+    StateFile {
         path: root.stateDir + "/popup-scale"
-        watchChanges: true
-        onFileChanged: reload()
         onLoadFailed: root.popupUserScale = 1.0
         onLoaded: {
             const v = parseFloat(text())
@@ -222,10 +213,8 @@ Singleton {
         }
     }
 
-    FileView {
+    StateFile {
         path: root.stateDir + "/colors.ini"
-        watchChanges: true
-        onFileChanged: reload()
         onLoaded: root.parseIni(text())
     }
 

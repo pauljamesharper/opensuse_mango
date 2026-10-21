@@ -2,7 +2,7 @@
 # bar — quickshell helper. Plain `qs` can't find this config (it lives in
 # ~/.local/share/mango/quickshell, not the default path), so every invocation
 # needs -p; this saves typing it.
-#   bar start     launch the bar unless it's running (config.conf's exec-once)
+#   bar start     launch the bar unless it's running (autostart.conf)
 #   bar restart   kill + relaunch the bar (default)
 #   bar log       tail the instance log
 #   bar <args>    any other qs subcommand, e.g. `bar ipc show`
@@ -20,30 +20,17 @@ cd "$HOME" || cd /
 # takes effect on the next restart (command menu: Restart bar).
 icon_theme=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d "'")
 [ -n "$icon_theme" ] && export QS_ICON_THEME="$icon_theme"
-# Settings the bar keeps (bar height, gaps, effects, weather location,
-# kept monitor layouts...) live in XDG_STATE_HOME, not in the config
-# folder, so an update that replaces ~/.config/mango never loses them.
-# Files from before that change (they sat in the config folder) are moved
-# across the first time; a file already in the state folder wins.
-S="${XDG_STATE_HOME:-$HOME/.local/state}/mango"
-C="${XDG_CONFIG_HOME:-$HOME/.config}/mango"
-mkdir -p "$S"
-for f in bar-height bar-scale popup-scale tag-icons mango-gaps mango-effects \
-         lock-idle lock-style pomodoro weather-location weather-units \
-         launcher-history displays.conf; do
-    if [ -f "$C/$f" ]; then
-        [ -e "$S/$f" ] || mv "$C/$f" "$S/$f"
-        rm -f "$C/$f"
-    fi
-done
+# The settings the bar keeps (bar height, gaps, effects, weather...) live
+# in the state folder, which the bar's writes expect to exist.
+mkdir -p "${XDG_STATE_HOME:-$HOME/.local/state}/mango"
 
 case "${1:-restart}" in
     start)   exec qs -p "$P" -d -n ;;
     restart)
         # kill every instance of this config and wait until the last one is
-        # gone: an instance can take a second to exit, `qs kill` reaches one
-        # at a time and can hang on a busy one, and `-n` only sees instances
-        # still registered, so a fixed half second stacked bars on each other
+        # gone: one can take a second to exit, `qs kill` reaches one at a
+        # time and can hang on a busy one, and `-n` only sees instances
+        # still registered
         for _ in $(seq 1 25); do
             pgrep -u "$(id -u)" -f "^qs -p $P -d -n\$" >/dev/null 2>&1 || break
             timeout 5 qs -p "$P" kill >/dev/null 2>&1

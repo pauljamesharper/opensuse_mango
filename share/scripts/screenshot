@@ -14,7 +14,7 @@ if [ "$mode" != full ]; then
     geom=$(slurp) || exit 0     # Escape while dragging: nothing happens
 fi
 
-# screenshot_2026-09-29_13-35-31.png: reads as a date, sorts by time, no
+# screenshot_YYYY-MM-DD_HH-MM-SS.png: reads as a date, sorts by time, no
 # spaces or colons (fine on SMB/NAS shares); taken the moment the region
 # is set. Two in one second get _2, _3 instead of overwriting.
 STAMP=$(date +%Y-%m-%d_%H-%M-%S)

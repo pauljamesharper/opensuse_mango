@@ -2,14 +2,11 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Weather radar: the last hour of RainViewer's mosaic looping over Esri's
-// dark basemap, centered on the forecast's spot. scripts/radar fetches the
-// 3x3 tile block into ~/.cache/mango/radar and prints where; this draws
-// it — land, rain, then place names on top so they stay readable.
-// The corner buttons and the wheel zoom (capped where the mosaic runs
-// out of detail), the time chip pauses the loop, and a click on the map
-// opens the same spot on Windy's radar in the browser for a proper look.
-// While the card is open the frames refresh every five minutes.
+// Weather radar: the last hour of RainViewer rain looping over Esri's dark
+// basemap, centered on the forecast's spot. scripts/radar caches a 3x3
+// tile block and prints where; this draws land, rain, then place names.
+// Buttons and the wheel zoom, the time chip pauses, a click opens Windy
+// in the browser. Frames refresh every five minutes while shown.
 Item {
     id: view
 
@@ -124,9 +121,10 @@ Item {
                 source: "file://" + view.baseDir + "/" + tile.name + ".jpg"
                 asynchronous: true
             }
-            // every frame loaded, only one shown: no reload flicker
+            // every frame loaded, only one shown: no reload flicker;
+            // freed while hidden
             Repeater {
-                model: view.frames
+                model: view.active ? view.frames : []
                 Image {
                     required property var modelData
                     required property int index

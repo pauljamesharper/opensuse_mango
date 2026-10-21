@@ -2,20 +2,10 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Command menu, in sections:
-//   Batteries — anything UPower knows with a battery (laptop, wireless
-//     mouse/keyboard, headset…), only when there is one (Batteries.qml)
-//   Quick settings — two-line tiles, name over state (QuickTile): power
-//     profile, keep awake, microphone, night light, do not disturb,
-//     Bluetooth (with an adapter), focus timer (− / + set its length).
-//     Filled = on, red = a state you shouldn't forget (mic muted, DND);
-//     right-click = the fuller tool (mixer, notification history, network
-//     app). Toggles stay open so the change is visible.
-//   brightness slider on laptops
-//   System — notifications, snapshots (Timeshift, when installed), check
-//     updates, keybindings, restart bar, power menu; these close the menu.
-// A running focus timer puts its countdown on this module itself —
-// glanceable without a dedicated one.
+// The command menu: batteries (when UPower reports any), quick-settings
+// tiles (QuickTile; they stay open so the change shows, right click opens
+// the fuller tool), a brightness slider on laptops, and system rows that
+// close the menu. A running focus timer shows its countdown on this pill.
 BarModule {
     id: root
 
@@ -23,11 +13,9 @@ BarModule {
     iconColor: Pomodoro.done ? Theme.bg
              : Pomodoro.running ? Theme.accent : Qt.alpha(Theme.fg, 0.7)
     label: Pomodoro.running ? Pomodoro.fmt(Pomodoro.remaining) : Pomodoro.done ? "0:00" : ""
-    labelColor: Pomodoro.done ? Theme.bg : Theme.fg
-    // time's-up alert: the pill itself goes red until acknowledged, so
-    // the signal survives DND (which holds the dunst notification back)
-    color: Pomodoro.done ? Theme.red
-         : hovered ? Qt.alpha(Theme.fg, 0.14) : Qt.alpha(Theme.fg, 0.07)
+    // time's up: the pill stays red until acknowledged, so the signal
+    // survives DND (which holds the dunst notification back)
+    alert: Pomodoro.done
     progress: Pomodoro.running ? Pomodoro.remaining / Pomodoro.total : -1
 
     onClicked: {
@@ -97,48 +85,6 @@ BarModule {
         const next = profileOrder[(profileOrder.indexOf(profile) + 1) % profileOrder.length]
         Quickshell.execDetached(["powerprofilesctl", "set", next])
         profile = next
-    }
-
-    component CommandRow: Rectangle {
-        id: rowRect
-        required property var modelData
-
-        width: parent.width
-        height: 34
-        radius: 8
-        color: rowMa.containsMouse ? Qt.alpha(Theme.fg, 0.12) : "transparent"
-
-        Behavior on color { ColorAnimation { duration: 120 } }
-
-        Row {
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.left: parent.left
-            anchors.leftMargin: 10
-            spacing: 10
-
-            Txt {
-                anchors.verticalCenter: parent.verticalCenter
-                text: rowRect.modelData.icon
-                color: Theme.cyan
-                font.pixelSize: 15
-            }
-            Txt {
-                anchors.verticalCenter: parent.verticalCenter
-                text: rowRect.modelData.label
-                color: Qt.alpha(Theme.fg, 0.9)
-                font.pixelSize: 13
-            }
-        }
-
-        MouseArea {
-            id: rowMa
-            anchors.fill: parent
-            hoverEnabled: true
-            onClicked: {
-                menu.visible = false
-                rowRect.modelData.run()
-            }
-        }
     }
 
     // history home while the Bell is hidden (it only shows during DND)
@@ -276,10 +222,8 @@ BarModule {
                           active: root.lockIdle,
                           run: () => {
                               root.lockIdle = !root.lockIdle
-                              Quickshell.execDetached(["sh", "-c",
-                                  'printf "%s\\n" "$1" > "$2" && exec "$3"', "sh",
-                                  root.lockIdle ? "1" : "0", Theme.stateDir + "/lock-idle",
-                                  Theme.shareDir + "/scripts/idle"])
+                              Theme.writeState("lock-idle", root.lockIdle ? "1" : "0",
+                                               [Theme.shareDir + "/scripts/idle"])
                           } },
                         { icon: root.lockRain ? "󰊠" : "󰂵", name: "Lock style",
                           state: root.lockRain ? "Matrix" : "Blur",
@@ -352,9 +296,9 @@ BarModule {
                 model: [
                     { icon: "󰂚", label: "Notifications",
                       run: () => notifHistory.visible = true },
-                    // Butterbian (btrfs + Timeshift): roll back a bad update.
-                    // timeshift-launcher asks for the password itself and,
-                    // on Wayland, lets root's window onto Xwayland (xhost).
+                    // Timeshift: roll back a bad update. timeshift-launcher
+                    // asks for the password itself and lets root's window
+                    // onto Xwayland (xhost).
                     root.hasTimeshift ? { icon: "󰁯", label: "Snapshots",
                       run: () => Quickshell.execDetached(["timeshift-launcher"]) } : null,
                     { icon: "󰚰", label: "Check updates",
@@ -379,7 +323,20 @@ BarModule {
                     { icon: "󰐥", label: "Power menu",
                       run: () => power.visible = true }
                 ].filter(r => r)
-                CommandRow {}
+                ListRow {
+                    required property var modelData
+                    height: 34
+                    glyphSize: 15
+                    fontSize: 13
+                    glyphWidth: 0
+                    pointer: false
+                    glyph: modelData.icon
+                    text: modelData.label
+                    onClicked: {
+                        menu.visible = false
+                        modelData.run()
+                    }
+                }
             }
         }
     }
