@@ -31,7 +31,7 @@ Singleton {
 
     // --- layout: mirrors layouts[] in mango's src/layout/layout.h (symbol
     // is what the IPC reports; name is what setlayout takes). mfact and
-    // nmaster flags mark the layouts whose arrange honours them. ---
+    // nmaster flags mark the layouts whose arrange honors them. ---
     readonly property var layouts: [
         { name: "tile",              symbol: "T",  glyph: "󰙀", mfact: true,  nmaster: true  },
         { name: "scroller",          symbol: "S",  glyph: "󰕭", mfact: false, nmaster: false },

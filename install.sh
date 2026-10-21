@@ -205,7 +205,7 @@ fi
 #                conffile rule (updated silently if never edited, otherwise
 #                kept with ours beside as FILE.new, said once)
 #   $STATE_DIR   generated files (palette, theme.conf, themed dunst, kitty
-#                colours) and the settings the bar keeps — survive untouched
+#                colors) and the settings the bar keeps — survive untouched
 SHARE_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/mango"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/mango"
 mkdir -p "$SHARE_DIR" "$CONFIG_DIR" "$STATE_DIR/shipped"
@@ -434,7 +434,7 @@ if [ "$ONLY_CONFIG" = false ]; then
         if bash "$TEMP_DIR/optional_tools.sh"; then
             msg "Optional tools completed successfully"
         else
-            msg "Optional tools exited (this is normal if cancelled by user)"
+            msg "Optional tools exited (this is normal if canceled by user)"
         fi
     fi
 else

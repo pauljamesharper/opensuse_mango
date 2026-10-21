@@ -117,7 +117,7 @@ icon theme in as `QS_ICON_THEME` (quickshell doesn't follow it itself).
   default source counts as the mic only if it is one (PipeWire can hand
   back an output there).
 - Tail of `scripts/wallpaper-theme` — mango: writes `theme.conf`
-  (focus/border/urgent/root colours, sourced by config.conf) and
+  (focus/border/urgent/root colors, sourced by config.conf) and
   `reload_config`; swaybg replaces the wallpaper and the config.conf
   exec-once line is rewritten.
 

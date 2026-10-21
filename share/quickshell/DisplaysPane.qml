@@ -118,7 +118,7 @@ Item {
             if (!rs.includes(o.r))
                 o.r = Math.max(...rs)
         }
-        outs = normalise(a)
+        outs = normalize(a)
     }
     function setRes(w, h) {
         const a = clone(outs)
@@ -128,10 +128,10 @@ Item {
         const rs = o.modes.filter(m => m.w === w && m.h === h).map(m => m.r)
         if (!rs.includes(o.r))
             o.r = Math.max(...rs)
-        outs = normalise(a)
+        outs = normalize(a)
     }
     // the layout's top-left corner is the origin
-    function normalise(a) {
+    function normalize(a) {
         const on = a.filter(o => o.on)
         if (on.length === 0)
             return a
@@ -174,7 +174,7 @@ Item {
             else
                 o.y = o.y + lh(o) / 2 < b.y + lh(b) / 2 ? b.y - lh(o) : b.y + lh(b)
         }
-        outs = normalise(a)
+        outs = normalize(a)
     }
 
     // wlr-randr arguments for every output that differs between the two

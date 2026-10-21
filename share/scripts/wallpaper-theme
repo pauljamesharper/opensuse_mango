@@ -77,7 +77,7 @@ cat > "$STATE/colors.rasi" <<EOF
 EOF
 
 # 4. Dunst — replace the quoted hex on each `# THEME: dunst_<key>` marker line.
-# dunst: the shipped template, coloured into the state folder (so a newer
+# dunst: the shipped template, colored into the state folder (so a newer
 # template shows up on the next pick, and the config folder stays ours)
 DUNSTRC="$STATE/dunstrc"
 cp "$SHARE/dunst/dunstrc" "$DUNSTRC"
@@ -266,7 +266,7 @@ if gtk_template_ok; then
 
     # Icons — pick the installed Colloid variant nearest the palette's
     # primary hue (selection, not recoloring: the variants ARE the hue
-    # families). Grey for washed-out palettes. Skipped if not installed.
+    # families). Gray for washed-out palettes. Skipped if not installed.
     R=$(printf '%d' "0x$(printf %s "${PRIMARY#\#}" | cut -c1-2)")
     G=$(printf '%d' "0x$(printf %s "${PRIMARY#\#}" | cut -c3-4)")
     B=$(printf '%d' "0x$(printf %s "${PRIMARY#\#}" | cut -c5-6)")

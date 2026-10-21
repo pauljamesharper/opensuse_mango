@@ -4,7 +4,7 @@ import Quickshell
 // Active connection indicator. The icon says the transport (Wi-Fi bars
 // follow signal strength, ethernet, VPN shield) and updates the moment
 // NetworkManager changes anything (Sys follows `nmcli monitor`). Two states
-// get words, not just a colour: "sign in" when the network wants a login
+// get words, not just a color: "sign in" when the network wants a login
 // page first (hotel, café) and "no internet" when it's connected to
 // something that doesn't reach it — both need NetworkManager's
 // connectivity check on (Sys.connectivity).

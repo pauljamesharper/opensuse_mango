@@ -6,5 +6,5 @@ save_dir=$HOME/Screenshots
 save_filename_format=screenshot_%Y-%m-%d_%H-%M-%S.png
 # close once it's saved or copied (Ctrl+C)
 early_exit=true
-# tool panel (colours, sizes) open from the start
+# tool panel (colors, sizes) open from the start
 show_panel=true

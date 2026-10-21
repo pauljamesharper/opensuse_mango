@@ -8,7 +8,7 @@ import Quickshell.Wayland
 // closes it; Escape too. The window takes exclusive keyboard focus only
 // while visible (an xdg-popup off a layer-shell panel never gets key
 // events, which is why this is a layer surface and not PopupWindow).
-// The same card chrome and behaviour as the X11 ports' Popout.
+// The same card chrome and behavior as the X11 ports' Popout.
 PanelWindow {
     id: root
     function takeFocus() { inner.forceActiveFocus() }

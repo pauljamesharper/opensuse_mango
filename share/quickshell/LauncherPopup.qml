@@ -65,7 +65,7 @@ Popout {
                () => openPopup("power")),
         action("keybinds", "Keybindings", "󰌌", "keys shortcuts hotkeys help cheatsheet",
                () => ipcCall("settings", "open", "keybinds")),
-        action("wallpaper", "Wallpaper", "󰋩", "background theme colors colours",
+        action("wallpaper", "Wallpaper", "󰋩", "background theme colors colors",
                () => ipcCall("settings", "open", "wallpaper")),
         action("layout", "Layout & tweaks", "󰕰", "tiling gaps borders blur shadows animations opacity bar height scale effects",
                () => ipcCall("settings", "open", "layout")),
@@ -158,8 +158,8 @@ Popout {
 
     // Action tiles are tinted by family so a grid of them scans like app
     // icons do, but the tints come from the theme: the accent's hue
-    // turned by a fixed amount per family (and the alert colour for the
-    // ones that end your session), so they re-colour with the wallpaper.
+    // turned by a fixed amount per family (and the alert color for the
+    // ones that end your session), so they re-color with the wallpaper.
     readonly property var families: [
         { key: "system",  label: "System" },
         { key: "capture", label: "Screenshots" },

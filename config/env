@@ -4,7 +4,7 @@
 # it. Plain KEY=VALUE lines; shell syntax, so $HOME works.
 
 # Where the setup keeps its generated files (wallpaper palette, themed
-# dunst config, kitty colours); kitty.conf includes its theme from here.
+# dunst config, kitty colors); kitty.conf includes its theme from here.
 MANGO_STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/mango
 
 # kitty reads the session's own config from the setup's share folder and

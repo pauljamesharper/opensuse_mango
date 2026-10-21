@@ -31,7 +31,7 @@ forget)
 hotplug)
     "$0" apply
     # awww paints the outputs that exist when it's told; a new one gets
-    # its background colour until told again. No transition: the others
+    # its background color until told again. No transition: the others
     # are showing this image already.
     command -v awww >/dev/null 2>&1 || exit 0
     img=$(cat "${XDG_CACHE_HOME:-$HOME/.cache}/mango/current_wallpaper" 2>/dev/null)

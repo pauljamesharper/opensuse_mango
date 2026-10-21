@@ -1,6 +1,6 @@
 import QtQuick
 
-// Matrix rain in the wallpaper's colours: columns of glyphs falling at
+// Matrix rain in the wallpaper's colors: columns of glyphs falling at
 // their own speeds, a bright head and a trail in the accent that fades
 // into the theme's background. Katakana like the film, with the digits
 // and the letters of "butterbian" mixed in for anyone paying attention.

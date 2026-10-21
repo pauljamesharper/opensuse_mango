@@ -3,7 +3,7 @@ import Quickshell
 import Quickshell.Io
 
 // Weather radar: the last hour of RainViewer's mosaic looping over Esri's
-// dark basemap, centred on the forecast's spot. scripts/radar fetches the
+// dark basemap, centered on the forecast's spot. scripts/radar fetches the
 // 3x3 tile block into ~/.cache/mango/radar and prints where; this draws
 // it — land, rain, then place names on top so they stay readable.
 // The corner buttons and the wheel zoom (capped where the mosaic runs
@@ -104,7 +104,7 @@ Item {
         color: Qt.alpha(Theme.fg, 0.05)
     }
 
-    // the 3x3 block around the centre tile, each layer a cached file
+    // the 3x3 block around the center tile, each layer a cached file
     Repeater {
         model: view.baseDir !== "" ? 9 : 0
 
