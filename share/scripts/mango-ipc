@@ -1,9 +1,15 @@
 #!/bin/sh
 # mango-ipc — mmsg with the socket found when the environment lacks it
 # (a bar restarted from a terminal that predates this compositor run).
+# Sockets are mango-<pid>.sock and a crashed run leaves its own behind,
+# so take the one whose pid is a running mango.
 if [ -z "${MANGO_INSTANCE_SIGNATURE:-}" ] || [ ! -S "$MANGO_INSTANCE_SIGNATURE" ]; then
     for s in "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"/mango-*.sock; do
-        [ -S "$s" ] && MANGO_INSTANCE_SIGNATURE="$s" && export MANGO_INSTANCE_SIGNATURE
+        pid=${s##*/mango-}; pid=${pid%.sock}
+        if [ -S "$s" ] && [ "$(cat "/proc/$pid/comm" 2>/dev/null)" = mango ]; then
+            MANGO_INSTANCE_SIGNATURE="$s" && export MANGO_INSTANCE_SIGNATURE
+            break
+        fi
     done
 fi
 exec mmsg "$@"

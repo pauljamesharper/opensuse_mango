@@ -3,6 +3,7 @@ singleton Wm Wm.qml
 singleton Sys Sys.qml
 singleton Batteries Batteries.qml
 singleton BarIpc BarIpc.qml
+singleton Pomodoro Pomodoro.qml
 Bar Bar.qml
 BarModule BarModule.qml
 Tags Tags.qml

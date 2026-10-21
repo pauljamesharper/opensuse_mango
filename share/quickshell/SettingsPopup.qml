@@ -10,13 +10,13 @@ import Quickshell.Io
 // Apply at the foot of the tab strip lights once the Keybinds or Rules
 // tab has saved something mango isn't running yet; it reloads the
 // config (scripts/keybinds apply → mango-reload).
-// IPC: `settings toggle`, `settings open <tab>`; the retired popups'
-// names still answer: keybinds, layouts / tweaks, wallpapers, displays.
+// IPC: `settings toggle`, `settings open <tab>`; the tabs' own names
+// answer too: keybinds, rules, layouts / tweaks, wallpapers, displays.
 Popout {
     id: root
-    // the retired popups' names still answer: layouts / tweaks open the
-    // Layout tab, keybinds the Keybinds tab, wallpapers the Wallpaper tab
-    // (random and set go to the pane; it opens the panel for the
+    // a tab's own name (toggle, open) lands on that tab: layouts / tweaks
+    // the Layout tab, keybinds the Keybinds tab, wallpapers the Wallpaper
+    // tab (random and set go to the pane; it opens the panel for the
     // extraction if need be)
     ipcNames: ["settings", "keybinds", "rules", "layouts", "tweaks", "wallpapers", "displays"]
     function ipc(fn, arg, target) {
@@ -35,7 +35,7 @@ Popout {
         } else if (fn === "close") {
             visible = false
         } else if (fn === "open") {
-            const i = tabs.findIndex(t => t.key === arg)
+            const i = tabs.findIndex(t => t.key === (target in own ? own[target] : arg))
             tab = i < 0 ? 0 : i
             visible = true
         }

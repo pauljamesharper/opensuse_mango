@@ -305,7 +305,7 @@ ShellRoot {
         property var _noPw: ({})
         property var _vpns: []
         // saved profiles: Wi-Fi ones by the SSID they join (a profile named
-        // "Wi-Fi connection 1" is still Frontier5408), VPNs by name.
+        // "Wi-Fi connection 1" is still HomeNet), VPNs by name.
         // Terse nmcli escapes ":" as "\:"; the name/SSID comes last.
         Process {
             id: savedProc

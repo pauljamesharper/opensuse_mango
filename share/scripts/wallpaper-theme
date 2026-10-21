@@ -200,13 +200,17 @@ fi
 # 6. Wallpaper now — awww animates the change (the daemon is started by
 #    config.conf's exec-once; started here too in case it isn't running).
 #    It survives logins through theme.conf's exec-once line (step 2).
-#    The dunst symlink follows the active session's config.
+#    ~/.config/dunst/dunstrc points at the themed one for D-Bus-activated
+#    starts, unless the user keeps a dunstrc of their own there.
 pgrep -x awww-daemon >/dev/null 2>&1 || { awww-daemon >/dev/null 2>&1 9>&- & sleep 0.5; }
 awww img "$IMG" --resize crop --transition-type wipe --transition-angle 30 \
     --transition-fps 60 --transition-duration 1 >/dev/null 2>&1 || true
 mkdir -p "$HOME/.cache/mango" "$HOME/.config/dunst"
 echo "$IMG" > "$HOME/.cache/mango/current_wallpaper"
-ln -sfn "$DUNSTRC" "$HOME/.config/dunst/dunstrc"
+USER_DUNSTRC="$HOME/.config/dunst/dunstrc"
+if [ ! -e "$USER_DUNSTRC" ] || [ "$(readlink -f "$USER_DUNSTRC")" = "$(readlink -f "$DUNSTRC")" ]; then
+    ln -sfn "$DUNSTRC" "$USER_DUNSTRC"
+fi
 
 # 7. GTK — wpgtk-style recolor: copy Orchis-Nord-Template and substitute its
 #    (fixed, known) palette with ours. Text in Orchis-dark is white-alpha,
@@ -270,6 +274,7 @@ if gtk_template_ok; then
     R=$(printf '%d' "0x$(printf %s "${PRIMARY#\#}" | cut -c1-2)")
     G=$(printf '%d' "0x$(printf %s "${PRIMARY#\#}" | cut -c3-4)")
     B=$(printf '%d' "0x$(printf %s "${PRIMARY#\#}" | cut -c5-6)")
+    # shellcheck disable=SC2046  # splits into HUE and SAT
     set -- $(awk -v r="$R" -v g="$G" -v b="$B" 'BEGIN{
         mx=r; if(g>mx)mx=g; if(b>mx)mx=b
         mn=r; if(g<mn)mn=g; if(b<mn)mn=b

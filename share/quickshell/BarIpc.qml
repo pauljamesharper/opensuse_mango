@@ -21,6 +21,7 @@ Singleton {
     IpcHandler { target: "metrics";    function toggle(): void { root.call("metrics", "toggle", "") }  function open(): void { root.call("metrics", "open", "") }  function close(): void { root.call("metrics", "close", "") } }
     IpcHandler { target: "launcher";   function toggle(): void { root.call("launcher", "toggle", "") }  function open(): void { root.call("launcher", "open", "") }  function close(): void { root.call("launcher", "close", "") } }
     IpcHandler { target: "keybinds";   function toggle(): void { root.call("keybinds", "toggle", "") }  function open(): void { root.call("keybinds", "open", "") }  function close(): void { root.call("keybinds", "close", "") } }
+    IpcHandler { target: "rules";      function toggle(): void { root.call("rules", "toggle", "") }  function open(): void { root.call("rules", "open", "") }  function close(): void { root.call("rules", "close", "") } }
     IpcHandler {
         target: "settings"
         function toggle(): void { root.call("settings", "toggle", "") }
@@ -36,6 +37,8 @@ Singleton {
     IpcHandler {
         target: "wallpapers"
         function toggle(): void { root.call("wallpapers", "toggle", "") }
+        function open(): void { root.call("wallpapers", "open", "") }
+        function close(): void { root.call("wallpapers", "close", "") }
         function random(): void { root.call("wallpapers", "random", "") }
         function set(path: string): void { root.call("wallpapers", "set", path) }
     }

@@ -3,22 +3,14 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Services.Pam
 
-// Lock screen — scripts/lock starts this (Super+Ctrl+L, the power menu,
-// the launcher, idle when "Lock on idle" is on). Session-lock protocol:
-// the compositor shows nothing but these surfaces until PAM says the
-// password is right. Its own qs instance, so a bar restart can't unlock
-// the screen; if it ever dies the compositor stays locked and running
-// scripts/lock again (a tty, ssh) brings the prompt back.
-// Background: LOCK_STYLE=rain — matrix rain in the theme's accent — or
-// blur, the wallpaper blurred (qml6-module-qtquick-effects; without it,
-// the wallpaper dimmed).
+// Lock screen, started by scripts/lock. Its own qs instance, so a bar
+// restart can't unlock it. LOCK_STYLE=rain (matrix rain) or blur (the
+// wallpaper blurred, dimmed without qml6-module-qtquick-effects).
 ShellRoot {
     id: root
 
-    // a running lock must survive its own files changing (an update, a
-    // git pull): no live reload here — the compositor keeps the session
-    // locked if the lock process dies, and that's a black screen until
-    // scripts/lock is run again
+    // no live reload: an update must not restart a running lock. If it
+    // dies the session stays locked; scripts/lock from a tty or ssh recovers
     Component.onCompleted: Quickshell.watchFiles = false
 
     readonly property string style: Quickshell.env("LOCK_STYLE") === "blur" ? "blur" : "rain"
@@ -119,7 +111,7 @@ ShellRoot {
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: 320
                     height: 46
-                    radius: Theme.barRadius
+                    radius: 8
                     color: Qt.alpha(Theme.bg, 0.88)
                     border.width: 2
                     border.color: root.wrong ? Theme.alert

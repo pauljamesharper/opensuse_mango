@@ -56,6 +56,7 @@ msg() { echo -e "${CYAN}$*${NC}"; }
 # mangowc itself comes from butterrepo: it needs wlroots 0.19 + scenefx 0.4, which
 # trixie does not ship, and butterrepo carries all three as .debs.
 if [ "$ONLY_CONFIG" = false ]; then
+    # shellcheck source=/dev/null
     . /etc/os-release 2>/dev/null || die "Cannot read /etc/os-release to verify OS"
     case " $ID ${ID_LIKE:-} " in
         *" ubuntu "*) die "Unsupported OS: ${PRETTY_NAME:-unknown}. Ubuntu-based systems are not supported." ;;
@@ -210,14 +211,14 @@ SHARE_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/mango"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/mango"
 mkdir -p "$SHARE_DIR" "$CONFIG_DIR" "$STATE_DIR/shipped"
 
-# An install from before 2026-10 kept everything in $CONFIG_DIR. Move it
-# aside whole and carry over what is the user's; the share folder takes
-# over the rest.
+# An install with the old one-folder layout keeps everything in
+# $CONFIG_DIR. Move it aside whole and carry over what is the user's; the
+# share folder takes over the rest.
 BACKUP_DIR=""
 if [ -d "$CONFIG_DIR/quickshell" ]; then
     BACKUP_DIR="$CONFIG_DIR.bak.$(date +%Y%m%d-%H%M%S)"
     while [ -e "$BACKUP_DIR" ]; do BACKUP_DIR="$BACKUP_DIR-1"; done
-    msg "Config from before the layout change found - moving it to $BACKUP_DIR and carrying yours over"
+    msg "Config with the old one-folder layout found - moving it to $BACKUP_DIR and carrying yours over"
     mv "$CONFIG_DIR" "$BACKUP_DIR"
     mkdir -p "$CONFIG_DIR"
     # the user's files, as they were
@@ -233,12 +234,13 @@ if [ -d "$CONFIG_DIR/quickshell" ]; then
         [ -f "$BACKUP_DIR/$f" ] && [ ! -e "$STATE_DIR/$(basename "$f")" ] && cp "$BACKUP_DIR/$f" "$STATE_DIR/$(basename "$f")"
     done
     [ -f "$BACKUP_DIR/kitty/current-theme.conf" ] && [ ! -e "$STATE_DIR/kitty-theme.conf" ] && cp "$BACKUP_DIR/kitty/current-theme.conf" "$STATE_DIR/kitty-theme.conf"
-    # the wallpaper line lived in config.conf before; theme.conf carries it now
+    # that layout keeps the wallpaper line in config.conf; theme.conf carries it
     if [ -f "$STATE_DIR/theme.conf" ] && ! grep -q '^exec-once=awww img' "$STATE_DIR/theme.conf"; then
         grep '^exec-once=awww img' "$BACKUP_DIR/config.conf" >> "$STATE_DIR/theme.conf" 2>/dev/null || true
     fi
     # keybinds and env from that layout name the old script paths
     for f in keybinds.conf env; do
+        # shellcheck disable=SC2016  # written literally, expanded at login
         [ -f "$CONFIG_DIR/$f" ] && sed -i 's|\.config/mango/scripts/|.local/share/mango/scripts/|g; s|\.config/mango/quickshell|.local/share/mango/quickshell|g; s|^KITTY_CONFIG_DIRECTORY=.*|KITTY_CONFIG_DIRECTORY=${XDG_DATA_HOME:-$HOME/.local/share}/mango/kitty|' "$CONFIG_DIR/$f"
     done
 fi
@@ -272,6 +274,8 @@ done
 if [ ${#KEPT_NEW[@]} -gt 0 ]; then
     msg "Kept your ${KEPT_NEW[*]}; the new defaults are beside as .new"
 fi
+# the commit installed from last time, for generated() below
+PREV_COMMIT=$(cat "$STATE_DIR/shipped/commit" 2>/dev/null || true)
 # remember what was shipped this time (see above)
 cp "$SCRIPT_DIR"/config/{config.conf,autostart.conf,keybinds.conf,rules.conf,local.conf,env} "$STATE_DIR/shipped/"
 # and where it came from, for scripts/setup-update (the command menu's
@@ -284,18 +288,23 @@ if git -C "$SCRIPT_DIR" rev-parse HEAD >/dev/null 2>&1; then
 else
     rm -f "$STATE_DIR/shipped/commit" "$STATE_DIR/shipped/branch" "$STATE_DIR/shipped/remote" "$STATE_DIR/shipped/source"
 fi
-# rules.conf is new in 2026-10; a config.conf kept from before needs to read it
+# a kept config.conf may lack the source lines for autostart.conf (the bar,
+# dunst, idle) and rules.conf; they go in where the shipped one has them
+grep -q 'autostart\.conf' "$CONFIG_DIR/config.conf" || sed -i '/^source=.*defaults\.conf/a source=~/.config/mango/autostart.conf' "$CONFIG_DIR/config.conf"
 grep -q 'rules\.conf' "$CONFIG_DIR/config.conf" || sed -i '/^source=.*keybinds\.conf/a source=~/.config/mango/rules.conf' "$CONFIG_DIR/config.conf"
-# MANGO_STATE_DIR in env is new in 2026-10; an env kept from before needs it
+for f in autostart.conf rules.conf; do
+    grep -qF "$f" "$CONFIG_DIR/config.conf" || warn "$CONFIG_DIR/config.conf does not read $f - add source=~/.config/mango/$f (see $SCRIPT_DIR/config/config.conf)"
+done
+# a kept env may lack MANGO_STATE_DIR
+# shellcheck disable=SC2016  # written literally, expanded at login
 grep -q '^MANGO_STATE_DIR=' "$CONFIG_DIR/env" || printf '\nMANGO_STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/mango\n' >> "$CONFIG_DIR/env"
 
 # Generated files: the default look, written from the default wallpaper.
 # A pick rewrites them all, so they follow the conffile rule without the
 # .new: replaced while they still equal what was shipped last time, left
-# alone after a pick. An install from before the shipped copies existed
-# is judged against the commit it was installed from.
+# alone after a pick. An install with no shipped copies yet is judged
+# against the commit it was installed from.
 mkdir -p "$STATE_DIR/shipped/state"
-PREV_COMMIT=$(cat "$STATE_DIR/shipped/commit" 2>/dev/null || true)
 generated() {        # <ours> <name> <path in the repo at the old commit>
     local ours="$1" theirs="$STATE_DIR/$2" prev="$STATE_DIR/shipped/state/$2"
     if [ ! -e "$theirs" ]; then
@@ -334,10 +343,13 @@ if systemd-detect-virt -q 2>/dev/null; then
     sed -i 's|^#WLR_NO_HARDWARE_CURSORS=1$|WLR_NO_HARDWARE_CURSORS=1|' "$CONFIG_DIR/env"
 fi
 
-# dunst is started with -config from defaults.conf; the symlink covers the
-# D-Bus-activated case (a notification arriving before autostart ran).
-mkdir -p ~/.config/dunst
-ln -sfn "$STATE_DIR/dunstrc" ~/.config/dunst/dunstrc
+# dunst is started with -config from autostart.conf; the symlink covers the
+# D-Bus-activated case (a notification arriving before autostart ran). A
+# dunstrc of the user's own is left alone
+if [ ! -e ~/.config/dunst/dunstrc ] || [ -L ~/.config/dunst/dunstrc ]; then
+    mkdir -p ~/.config/dunst
+    ln -sfn "$STATE_DIR/dunstrc" ~/.config/dunst/dunstrc
+fi
 # swappy (screenshot annotate) saves where the other screenshots go; a
 # swappy config of the user's own is left alone
 if [ ! -e ~/.config/swappy/config ] || [ -L ~/.config/swappy/config ]; then
@@ -346,13 +358,17 @@ if [ ! -e ~/.config/swappy/config ] || [ -L ~/.config/swappy/config ]; then
 fi
 
 # Setup directories
-xdg-user-dirs-update
-# thunar handles folders: the bar's wallpaper picker opens one via xdg-open,
-# and with no default set it falls to whichever .desktop sorts first
-command -v xdg-mime >/dev/null && xdg-mime default thunar.desktop inode/directory
-# butterview opens images (double-click in thunar, xdg-open from the scripts)
-command -v xdg-mime >/dev/null && xdg-mime default butterview.desktop \
-    image/jpeg image/png image/gif image/webp image/avif image/jxl image/tiff image/bmp image/svg+xml
+command -v xdg-user-dirs-update >/dev/null && xdg-user-dirs-update
+# Default apps, set on a full install only: an update leaves the user's
+# choices alone. thunar handles folders: the bar's wallpaper picker opens
+# one via xdg-open, and with no default set it falls to whichever .desktop
+# sorts first. butterview opens images (double-click in thunar, xdg-open
+# from the scripts).
+if [ "$ONLY_CONFIG" = false ] && command -v xdg-mime >/dev/null; then
+    xdg-mime default thunar.desktop inode/directory
+    xdg-mime default butterview.desktop \
+        image/jpeg image/png image/gif image/webp image/avif image/jxl image/tiff image/bmp image/svg+xml
+fi
 # butterview's "set as wallpaper" key goes through the bar, so the desktop
 # is re-themed as well; a hook of the user's own is left alone
 if [ ! -e ~/.config/butterview/wallpaper ] || [ -L ~/.config/butterview/wallpaper ]; then
@@ -361,20 +377,24 @@ if [ ! -e ~/.config/butterview/wallpaper ] || [ -L ~/.config/butterview/wallpape
 fi
 mkdir -p ~/Screenshots
 
-# Drop quickstart cheatsheet in $HOME (user can delete once read)
-if [ -f "$SCRIPT_DIR/QUICKSTART.md" ]; then
+# Drop quickstart cheatsheet in $HOME (user can delete once read); a full
+# install only, so a deleted one stays deleted
+if [ "$ONLY_CONFIG" = false ] && [ -f "$SCRIPT_DIR/QUICKSTART.md" ]; then
     cp "$SCRIPT_DIR/QUICKSTART.md" "$HOME/QUICKSTART-mango.md"
 fi
 
 # Copy nvidia-setup.sh to $HOME so NVIDIA users can re-run it after install
-if [ -f "$SCRIPT_DIR/nvidia-setup.sh" ]; then
+if [ "$ONLY_CONFIG" = false ] && [ -f "$SCRIPT_DIR/nvidia-setup.sh" ]; then
     cp "$SCRIPT_DIR/nvidia-setup.sh" "$HOME/nvidia-setup.sh"
     chmod +x "$HOME/nvidia-setup.sh"
 fi
 
-# Butterscript helper: get_script <path> [args passed to the script]
+# Butterscript helper: get_script <path> [args passed to the script];
+# fails when the download does, rather than running nothing
 get_script() {
-    wget -qO- "https://justaguy.dev/drew/butterscripts/raw/branch/main/$1" | bash -s -- "${@:2}"
+    local script
+    script=$(wget -qO- "https://justaguy.dev/drew/butterscripts/raw/branch/main/$1") || return
+    bash -s -- "${@:2}" <<< "$script"
 }
 
 # Install essential components
@@ -388,31 +408,39 @@ if [ "$ONLY_CONFIG" = false ]; then
     get_script "kitty/install_kitty.sh" --no-config \
         || warn "Kitty installation failed - you can install it manually later"
 
+    # fonts before geany: its installer skips its own font step when
+    # SauceCodePro is already there
+    msg "Installing fonts..."
+    get_script "theming/install_nerdfonts.sh" || warn "Font installation failed - you can install fonts manually later"
+
     # the editor Super+E and the keybinds viewer open (config.conf, scripts/keybinds)
     msg "Installing geany..."
     get_script "geany/install_geany.sh" \
         || warn "Geany installation failed - Super+E and editing from the keybinds viewer need an editor called geany"
-
-    msg "Installing fonts..."
-    get_script "theming/install_nerdfonts.sh" || warn "Font installation failed - you can install fonts manually later"
 
     msg "Installing themes..."
     get_script "theming/install_wallpaper_theme.sh" || warn "Theme installation failed - you can install themes manually later"
 
     msg "Downloading wallpaper directory..."
     if [ ! -d "$CONFIG_DIR/wallpaper" ]; then
-        git clone --depth 1 --progress https://github.com/drewgrif/wallpapers.git "$CONFIG_DIR/wallpaper" || die "Failed to clone wallpapers"
-        rm -rf "$CONFIG_DIR/wallpaper/.git"
+        if git clone --depth 1 --progress https://github.com/drewgrif/wallpapers.git "$CONFIG_DIR/wallpaper"; then
+            rm -rf "$CONFIG_DIR/wallpaper/.git"
+        else
+            warn "Failed to clone wallpapers - the default one is fetched on its own below"
+        fi
     else
         msg "Wallpaper directory already exists, skipping..."
     fi
 
     msg "Downloading display manager installer..."
-    wget -O "$TEMP_DIR/install_lightdm.sh" "https://justaguy.dev/drew/butterscripts/raw/branch/main/system/install_lightdm.sh"
-    chmod +x "$TEMP_DIR/install_lightdm.sh"
-    msg "Running display manager installer..."
-    # Run in current terminal session to preserve interactivity
-    bash "$TEMP_DIR/install_lightdm.sh"
+    if wget -O "$TEMP_DIR/install_lightdm.sh" "https://justaguy.dev/drew/butterscripts/raw/branch/main/system/install_lightdm.sh"; then
+        chmod +x "$TEMP_DIR/install_lightdm.sh"
+        msg "Running display manager installer..."
+        # Run in current terminal session to preserve interactivity
+        bash "$TEMP_DIR/install_lightdm.sh" || warn "Display manager installer failed - you can run it again later"
+    else
+        warn "Could not download the display manager installer - you can install a login screen later"
+    fi
 
     # NVIDIA setup (auto-detects GPU and drivers)
     # Skip in chroot (no GPU access) or if running as root (e.g., during butterknife install)
@@ -428,13 +456,16 @@ if [ "$ONLY_CONFIG" = false ]; then
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         msg "Downloading optional tools installer..."
-        wget -O "$TEMP_DIR/optional_tools.sh" "https://justaguy.dev/drew/butterscripts/raw/branch/main/setup/optional_tools.sh"
-        chmod +x "$TEMP_DIR/optional_tools.sh"
-        msg "Running optional tools installer..."
-        if bash "$TEMP_DIR/optional_tools.sh"; then
-            msg "Optional tools completed successfully"
+        if wget -O "$TEMP_DIR/optional_tools.sh" "https://justaguy.dev/drew/butterscripts/raw/branch/main/setup/optional_tools.sh"; then
+            chmod +x "$TEMP_DIR/optional_tools.sh"
+            msg "Running optional tools installer..."
+            if bash "$TEMP_DIR/optional_tools.sh"; then
+                msg "Optional tools completed successfully"
+            else
+                msg "Optional tools exited (this is normal if canceled by user)"
+            fi
         else
-            msg "Optional tools exited (this is normal if canceled by user)"
+            warn "Could not download the optional tools installer - you can run it later"
         fi
     fi
 else
@@ -493,7 +524,7 @@ echo "2. Press Super + / for keybindings"
 echo "3. Super + Space for application launcher"
 echo "4. Super + Shift + p for the wallpaper picker (re-themes the desktop from the image)"
 echo "5. Super + Shift + m for the command menu"
-echo "6. See ~/QUICKSTART-mango.md for a quick reference"
+[ -f "$HOME/QUICKSTART-mango.md" ] && echo "6. See ~/QUICKSTART-mango.md for a quick reference"
 echo "To update later: 'Update setup' in the command menu (or cd $SCRIPT_DIR && git pull && ./install.sh)"
 echo "Installation log: $LOG_FILE"
 

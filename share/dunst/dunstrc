@@ -7,8 +7,6 @@
     width = 500
     height = 300
     indicate_hidden = yes
-    shrink = no
-    transparency = 0
     separator_height = 2
     padding = 15
     horizontal_padding = 15
@@ -38,20 +36,16 @@
     min_icon_size = 16
     max_icon_size = 32
     enable_recursive_icon_lookup = true
-    icon_path = /usr/share/icons/Papirus/96x96/devices/:/usr/share/icons/Papirus/48x48/status/:/usr/share/icons/Papirus/96x96/apps/
 
     # History
     sticky_history = yes
     history_length = 20
 
     # Advanced
-    dmenu = /usr/bin/dmenu -p dunst:
-    browser = /usr/bin/firefox -new-tab
+    dmenu = /usr/bin/rofi -dmenu -p dunst
+    browser = /usr/bin/xdg-open
     always_run_script = true
-    title = Dunst
-    class = Dunst
     corner_radius = 15
-    force_xinerama = false
 
     # Progress bar
     progress_bar = true
@@ -67,15 +61,6 @@
     mouse_left_click = close_current
     mouse_middle_click = do_action
     mouse_right_click = close_all
-
-    # Keyboard shortcuts
-    close = ctrl+space
-    close_all = ctrl+shift+space
-    history = ctrl+grave
-    context = ctrl+shift+period
-
-[experimental]
-    per_monitor_dpi = false
 
 [urgency_low]
     background = "#181c20"  # THEME: dunst_bg_low

@@ -8,13 +8,14 @@ import Quickshell.Io
 // (do=). Click a row to edit it in the panel below: record a chord (mango
 // lets go of its grabs meanwhile), change the label and what it does,
 // Save; "+" on a section adds a bind; right-click a row to open the file
-// at that line instead. Every write goes through the generator first,
-// so a bad bind is refused with its reason and the file stays as it
-// was. Saves pile up until the panel's Apply reloads mango
-// with them. Rows come from scripts/keybinds, re-read after every
-// change. Nothing here is WM-specific: each setup's scripts/keybinds
-// reads its own config format and answers the same verbs (rows, get,
-// set, add, delete, check, apply).
+// at that line instead (local.conf rows only open: that file is edited
+// by hand). Every write goes through `keybinds check` first, so a bad
+// bind is refused with its reason and the file stays as it was. Saves
+// pile up until the panel's Apply reloads mango with them. Rows come
+// from scripts/keybinds, re-read after every change. Nothing here is
+// WM-specific: each setup's scripts/keybinds reads its own config format
+// and answers the same verbs (rows, open, get, set, add, delete, check,
+// apply).
 Item {
     id: root
     required property var popup     // the SettingsPopup: closed around apply
@@ -188,7 +189,7 @@ Item {
             const f = l.split("\t")
             if (f.length < 4)
                 continue
-            out.push({ section: f[0], desc: f[2], line: parseInt(f[3]), kind: f[4] ?? "", cmd: f[5] ?? "",
+            out.push({ section: f[0], desc: f[2], line: f[3], kind: f[4] ?? "", cmd: f[5] ?? "",
                        keys: f[1].split("|").map(k => k.split("+")) })
         }
         return out
@@ -678,7 +679,8 @@ Item {
                                         y: 4 + 3
                                         width: Math.min(implicitWidth, parent.width * 0.45)
                                         elide: Text.ElideLeft
-                                        text: bindRow.modelData.cmd + "  ·  L" + bindRow.modelData.line
+                                        text: bindRow.modelData.cmd + "  ·  " + (bindRow.modelData.line.startsWith("local:")
+                                              ? "local.conf L" + bindRow.modelData.line.slice(6) : "L" + bindRow.modelData.line)
                                         opacity: rowMa.containsMouse ? 1 : 0
                                         color: Qt.alpha(Theme.fg, 0.4)
                                         font.pixelSize: 10
@@ -693,6 +695,8 @@ Item {
                                         onClicked: m => {
                                             if (m.button === Qt.RightButton)
                                                 root.edit(bindRow.modelData.line)
+                                            else if (bindRow.modelData.line.startsWith("local:"))
+                                                root.setStatus("local.conf is edited by hand · right-click opens it", false)
                                             else
                                                 root.openEditor(bindRow.modelData.line, bindRow.modelData.section)
                                         }
