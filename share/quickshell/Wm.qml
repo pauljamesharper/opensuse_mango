@@ -18,8 +18,8 @@ Singleton {
 
     // Tags are per monitor in mango, so every output has its own state and
     // each bar shows its own.
-    property var mons: ({})   // name -> {seltags, occtags, urgtags, tagCount, title, layoutIndex}
-    readonly property var _none: ({ seltags: 1, occtags: 0, urgtags: 0, tagCount: 9, title: "", layoutIndex: 0 })
+    property var mons: ({})   // name -> {seltags, occtags, urgtags, tagCount, title, appid, layoutIndex}
+    readonly property var _none: ({ seltags: 1, occtags: 0, urgtags: 0, tagCount: 9, title: "", appid: "", layoutIndex: 0 })
     function of(name) { return mons[name] ?? mons[monitor] ?? _none }
     property bool identifyOutputs: false   // Displays card: name on every screen
 
@@ -199,6 +199,7 @@ Singleton {
                 seltags: sel, occtags: occ, urgtags: urg,
                 tagCount: tags.length || 9,
                 title: m.active_client?.title ?? "",
+                appid: m.active_client?.appid ?? "",
                 layoutIndex: li >= 0 ? li : 0
             }
         }

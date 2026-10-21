@@ -17,8 +17,9 @@ icon theme in as `QS_ICON_THEME` (quickshell doesn't follow it itself).
   `mmsg dispatch`. `scripts/mango-ipc` wraps mmsg and finds the socket
   when MANGO_INSTANCE_SIGNATURE is missing from the environment.
 - `Bar.qml` — no Follow module (mango has no window-follow toggle).
-- `SettingsPopup.qml` — the settings panel: one centered card, tabs down
-  the left (Keybinds, Layout, Bar, Wallpaper, Displays), Apply at the foot
+- `SettingsPopup.qml` — the settings panel: one floating window mango
+  moves and resizes, tabs down the left (Keybinds, Rules, Layout, Bar,
+  Wallpaper, Displays), Apply at the foot
   of the strip. `KeybindsPane.qml` edits keybinds.conf through
   `scripts/keybinds` (get / set / add / delete / check / apply);
   `LayoutTweaks.qml` (the fourteen mango layouts as glyph tiles, the live

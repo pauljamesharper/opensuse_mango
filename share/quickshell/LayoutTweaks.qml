@@ -7,8 +7,7 @@ import QtQuick
 // mango-gaps / mango-effects state files Wm.qml re-applies on start.
 Column {
     id: root
-    required property var popup
-    readonly property string mon: popup.screen ? popup.screen.name : ""
+    readonly property string mon: Wm.monitor
     spacing: 6
 
     SectionLabel { text: "Layout" }

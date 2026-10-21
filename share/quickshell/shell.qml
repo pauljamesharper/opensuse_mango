@@ -28,6 +28,9 @@ ShellRoot {
         function onScreensChanged() { displaysHotplug.running = true }
     }
 
+    // Settings: one window for all outputs; mango places it on the focused one
+    SettingsPopup {}
+
     // Displays card's "identify": each output's name, big, for a moment
     Variants {
         model: Quickshell.screens

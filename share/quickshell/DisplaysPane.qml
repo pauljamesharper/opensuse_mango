@@ -10,7 +10,6 @@ import Quickshell.Io
 // the fallback). Drag the diagram to arrange; edges snap to neighbours.
 Item {
     id: root
-    required property var popup
 
     property var outs: []      // editable {name, desc, on, w, h, r, x, y, scale, transform, vrr, modes}
     property var orig: []      // as the compositor has it now
@@ -101,7 +100,7 @@ Item {
         orig = clone(list)
         outs = list
         if (!_picked || sel >= outs.length) {
-            const here = outs.findIndex(o => popup.screen && o.name === popup.screen.name)
+            const here = outs.findIndex(o => o.name === Wm.monitor)
             sel = here >= 0 ? here : 0
         }
     }
