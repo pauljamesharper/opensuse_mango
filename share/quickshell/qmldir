@@ -4,6 +4,9 @@ singleton Sys Sys.qml
 singleton Batteries Batteries.qml
 singleton BarIpc BarIpc.qml
 singleton Pomodoro Pomodoro.qml
+singleton WeatherData WeatherData.qml
+singleton UpdateCount UpdateCount.qml
+singleton MediaState MediaState.qml
 Bar Bar.qml
 BarModule BarModule.qml
 Tags Tags.qml

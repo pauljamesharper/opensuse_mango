@@ -2,10 +2,9 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Weather popup: a three-day forecast from the bar module's own wttr.in
-// fetch, then a location field (Enter pins it, "auto" unpins it) and
-// units. They write the weather-location and weather-units state files
-// Weather.qml watches. Right-click the module to open with the field
+// Weather popup: a three-day forecast from WeatherData, then a location
+// field (Enter pins it, "auto" unpins it) and units. They write the
+// weather-location and weather-units state files WeatherData watches. Right-click the module to open with the field
 // focused. "radar" swaps the forecast for the last hour of rain (RadarView).
 Popout {
     id: root
@@ -15,19 +14,19 @@ Popout {
         else if (fn === "radar") { root.visible = true; root.radar = true }
     }
 
-    property string condition: ""
-    property string feels: ""
-    property string wind: ""
-    property string place: ""
-    property var days: []   // {label, glyph, hi, lo, rain}
-    property bool failed: false   // last fetch failed (bad location, offline)
-    property real lat: 0          // where the forecast is for, for the radar
-    property real lon: 0
+    readonly property string condition: WeatherData.condition
+    readonly property string feels: WeatherData.feels
+    readonly property string wind: WeatherData.wind
+    readonly property string place: WeatherData.place
+    readonly property var days: WeatherData.days
+    readonly property bool failed: WeatherData.failed
+    readonly property real lat: WeatherData.lat
+    readonly property real lon: WeatherData.lon
     property bool radar: false
 
-    // the saved settings, fed by Weather.qml ("" = auto)
-    property string location: ""
-    property string units: ""
+    // the saved settings ("" = auto)
+    readonly property string location: WeatherData.location
+    readonly property string units: WeatherData.unitsOverride
 
     readonly property bool localeF: Qt.locale().measurementSystem !== Locale.MetricSystem
 

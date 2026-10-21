@@ -1,50 +1,19 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
 
-// Pending-updates pill, hidden at zero. The check is a root-free,
-// lock-free simulated dist-upgrade, run hourly and the moment the upgrade
-// terminal finishes; middle click re-checks now. The count is as fresh as
-// the last `apt update` (the upgrade terminal runs one).
+// Pending-updates pill (UpdateCount), hidden at zero. Click opens the
+// upgrade terminal; middle click re-checks now.
 BarModule {
     id: root
 
-    property int count: 0
-    visible: count > 0
+    visible: UpdateCount.count > 0
     icon: "󰚰"
     iconColor: Theme.accent
-    label: String(count)
-
-    Process {
-        id: checkProc
-        command: ["sh", "-c",
-            "apt-get -s -o Debug::NoLocking=1 dist-upgrade 2>/dev/null | grep -c '^Inst'"]
-        stdout: StdioCollector {
-            onStreamFinished: root.count = parseInt(text.trim()) || 0
-        }
-    }
-
-    Timer {
-        interval: 3600 * 1000
-        running: true
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: checkProc.running = true
-    }
-
-    // the upgrade terminal says when it's done (below), so the pill
-    // clears the moment apt finishes; nothing polls in between.
-    // Scriptable too: qs -p ~/.local/share/mango/quickshell ipc call updates check
-    Connections {
-        target: BarIpc
-        function onCall(target, fn, arg) {
-            if (target === "updates" && fn === "check") checkProc.running = true
-        }
-    }
+    label: String(UpdateCount.count)
 
     onClicked: mouse => {
         if (mouse.button === Qt.MiddleButton) {
-            checkProc.running = true
+            UpdateCount.check()
         } else {
             // ...and, since updates were asked for, one look at whether the
             // setup itself has moved on (scripts/setup-update offer)
