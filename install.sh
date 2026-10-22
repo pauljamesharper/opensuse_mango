@@ -64,7 +64,8 @@ if [ "$ONLY_CONFIG" = false ]; then
     esac
 fi
 
-clear 2>/dev/null || true
+# an update keeps what setup-update printed above it
+[ "$ONLY_CONFIG" = true ] || clear 2>/dev/null || true
 printf '\033[1mmangobutter\033[0m\n\033[2mmango for Debian · justaguy.dev/drew/mangobutter\033[0m\n\n'
 
 # A machine with no login screen yet (a minimal Debian) needs a reboot at
@@ -411,9 +412,10 @@ if [ "$ONLY_CONFIG" = false ]; then
     fi
 
     # Optional tools
-    read -p "Install optional tools (browsers, editors, etc)? (y/n) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]] && fetch_script setup/optional_tools.sh "optional tools" "you can run it later"; then
+    # a whole line read, so the Enter after y doesn't land in the next menu;
+    # no answer (no terminal) is a no
+    read -r -p "Install optional tools (browsers, editors, etc)? (y/n) " REPLY || REPLY=n
+    if [[ $REPLY =~ ^[Yy] ]] && fetch_script setup/optional_tools.sh "optional tools" "you can run it later"; then
         if bash "$TEMP_DIR/optional_tools.sh"; then
             msg "Optional tools completed successfully"
         else
