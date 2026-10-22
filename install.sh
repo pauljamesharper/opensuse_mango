@@ -465,7 +465,11 @@ fi
 
 # Done
 echo -e "\n${GREEN}Installation complete!${NC}"
-if [ "$LIVE" = true ]; then
+if [ "$LIVE" = true ] && [ -n "$BACKUP_DIR" ]; then
+    # the session's environment (env) is read at login: kitty's config and
+    # colors moved with the layout
+    echo "1. mango reloaded and the bar restarted; log out and back in once so terminals find their new colors"
+elif [ "$LIVE" = true ]; then
     echo "1. mango reloaded and the bar restarted: the update is live"
 elif [ "$DM_AT_START" = active ] || [ "$ONLY_CONFIG" = true ]; then
     echo "1. Log out (fully — the render group applies at next login) and select 'Mango' from your display manager"
