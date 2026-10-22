@@ -38,7 +38,7 @@ update() {
     if [ -d "$SRC/.git" ]; then
         echo "$SRC: pulling $BRANCH"
         git -C "$SRC" pull --ff-only origin "$BRANCH" \
-            || { echo "update failed: $SRC can't move to origin/$BRANCH (local changes or commits there?)"; return 1; }
+            || { echo "update failed: $SRC couldn't pull origin/$BRANCH (git says why above)"; return 1; }
     elif [ -e "$SRC" ]; then
         echo "update failed: $SRC is in the way and isn't a clone of the setup"; return 1
     else
