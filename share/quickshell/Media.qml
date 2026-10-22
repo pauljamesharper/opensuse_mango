@@ -3,7 +3,7 @@ import QtQuick
 // Now playing (MediaState), hidden when nothing plays. Click toggles
 // play/pause, scroll skips tracks, right click opens the popup (art, seek,
 // transport, player switcher), middle click dismisses that player on every
-// output until it plays again or changes track. The pill is a truncated
+// output until it changes track or plays after a pause. The pill is a truncated
 // title plus a progress underline when the track reports a length.
 BarModule {
     id: root
