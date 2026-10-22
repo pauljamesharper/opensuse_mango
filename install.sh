@@ -240,9 +240,16 @@ cp "$SCRIPT_DIR"/config/{config.conf,autostart.conf,keybinds.conf,rules.conf,loc
 # and where it came from, for scripts/setup-update (the command menu's
 # "Update setup"); a zip download has no record and the entry says so
 if git -C "$SCRIPT_DIR" rev-parse HEAD >/dev/null 2>&1; then
+    # a clone made under the old name moves to the new one
+    remote=$(git -C "$SCRIPT_DIR" remote get-url origin 2>/dev/null || true)
+    case "$remote" in
+        *justaguy.dev*/mangowc-setup|*justaguy.dev*/mangowc-setup.git|*justaguy.dev*/mangowc-setup/)
+            remote="${remote%mangowc-setup*}mangobutter${remote##*mangowc-setup}"
+            git -C "$SCRIPT_DIR" remote set-url origin "$remote" ;;
+    esac
     git -C "$SCRIPT_DIR" rev-parse HEAD > "$STATE_DIR/shipped/commit"
     git -C "$SCRIPT_DIR" rev-parse --abbrev-ref HEAD > "$STATE_DIR/shipped/branch"
-    git -C "$SCRIPT_DIR" remote get-url origin > "$STATE_DIR/shipped/remote" 2>/dev/null || echo "" > "$STATE_DIR/shipped/remote"
+    echo "$remote" > "$STATE_DIR/shipped/remote"
     echo "$SCRIPT_DIR" > "$STATE_DIR/shipped/source"
 else
     rm -f "$STATE_DIR/shipped/commit" "$STATE_DIR/shipped/branch" "$STATE_DIR/shipped/remote" "$STATE_DIR/shipped/source"
