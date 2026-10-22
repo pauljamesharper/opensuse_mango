@@ -440,6 +440,11 @@ fi
 LIVE=false
 if [ "$ONLY_CONFIG" = true ] && [ -n "${WAYLAND_DISPLAY:-}" ] && pgrep -x -u "$USER" mango >/dev/null 2>&1; then
     LIVE=true
+    # a bar from the old one-folder layout still runs out of the moved
+    # folder: stop it, or both bars stay up
+    if [ -n "$BACKUP_DIR" ]; then
+        pkill -u "$USER" -f "^qs -p $CONFIG_DIR/quickshell( |\$)" || true
+    fi
     # The bar first, on the new files, and wait until it answers: mango's
     # reload below runs the exec-once lines again (0.14), whose `bar start`
     # is a no-op only once this bar is registered; started side by side,
