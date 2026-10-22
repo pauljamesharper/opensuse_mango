@@ -202,8 +202,8 @@ Singleton {
         path: root.stateDir + "/tag-icons"
         onLoaded: root.tagIcons = text().trim() === "1"
     }
-    // how many tags the strip shows (0 = all) and whether it skips empty
-    // ones; the focused tag and urgent ones show regardless (Bar tab)
+    // how many empty tags the strip shows (the first N, 0 = all) and
+    // whether it hides them all; tags with windows always show (Bar tab)
     property int tagsShown: 0
     StateFile {
         path: root.stateDir + "/tags-shown"
