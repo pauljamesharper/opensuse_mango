@@ -74,7 +74,7 @@ Mango is dwm's model, tags and a master stack, as a wlroots compositor with scen
 | **awww** | Wallpaper daemon; wallpapers wipe in |
 | **dunst** | Notifications |
 | **grim + slurp + swappy** | Screenshots and annotation |
-| **butterview** | Image viewer; its `w` key sets the image as the wallpaper through the bar |
+| **butterview** | Image viewer |
 
 ---
 

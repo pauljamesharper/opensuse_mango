@@ -1,8 +1,0 @@
-#!/bin/sh
-# butterview's "set as wallpaper" (the w key) runs this with the image's
-# path. It hands the image to the bar, which sets it and re-themes the
-# desktop, the same as picking it in the bar's wallpaper panel.
-#
-# The setup links this file into ~/.config/butterview/; replace the link
-# with a file of your own to do something else and the setup leaves it be.
-exec qs -p "${XDG_DATA_HOME:-$HOME/.local/share}/mango/quickshell" ipc call wallpapers set "$1"

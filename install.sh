@@ -208,7 +208,7 @@ msg "Setting up configuration..."
 rm -rf "$SHARE_DIR"
 mkdir -p "$SHARE_DIR"
 cp -r "$SCRIPT_DIR"/share/* "$SHARE_DIR"/ || die "Failed to copy the setup's files"
-chmod +x "$SHARE_DIR"/scripts/* "$SHARE_DIR"/butterview/wallpaper
+chmod +x "$SHARE_DIR"/scripts/*
 
 # The user's files, dpkg's way. "Never edited" is known from the copy of
 # what was shipped last time, kept in the state folder.
@@ -324,11 +324,9 @@ if [ "$ONLY_CONFIG" = false ] && command -v xdg-mime >/dev/null; then
     xdg-mime default butterview.desktop \
         image/jpeg image/png image/gif image/webp image/avif image/jxl image/tiff image/bmp image/svg+xml
 fi
-# butterview's "set as wallpaper" key goes through the bar, so the desktop
-# is re-themed as well; a hook of the user's own is left alone
-if [ ! -e ~/.config/butterview/wallpaper ] || [ -L ~/.config/butterview/wallpaper ]; then
-    mkdir -p ~/.config/butterview
-    ln -sfn "$SHARE_DIR/butterview/wallpaper" ~/.config/butterview/wallpaper
+# butterview no longer sets wallpapers: drop the hook earlier installs linked
+if [ "$(readlink ~/.config/butterview/wallpaper)" = "$SHARE_DIR/butterview/wallpaper" ]; then
+    rm -f ~/.config/butterview/wallpaper
 fi
 mkdir -p ~/Screenshots
 
