@@ -48,5 +48,5 @@ Super is the mod key. Keys: `~/.config/mango/keybinds.conf`; startup programs: `
 | Super + s / Super + Shift + s | Screenshot full / region (saved to ~/Screenshots) |
 
 ## Apps
-Super + b Firefox · Super + Shift + b private · Super + c Helium · Super + f Thunar · Super + e Geany
+Super + b Firefox · Super + Shift + b private · Super + f Thunar · Super + e Geany
 Super + d Discord (tag 8) · Super + g GIMP (tag 9) · Super + o OBS (tag 10)
