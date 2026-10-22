@@ -448,9 +448,12 @@ if [ "$ONLY_CONFIG" = true ] && [ -n "${WAYLAND_DISPLAY:-}" ] && pgrep -x -u "$U
     # The bar first, on the new files, and wait until it answers: mango's
     # reload below runs the exec-once lines again (0.14), whose `bar start`
     # is a no-op only once this bar is registered; started side by side,
-    # both would start a bar.
+    # both would start a bar. mango starts it, so it lands in the login
+    # session (the network and power actions need that; this terminal runs
+    # in a scope of its own).
     oldbar=" $(pgrep -x -u "$USER" qs | tr '\n' ' ')"
-    ("$SHARE_DIR/scripts/bar" restart >/dev/null 2>&1 &)
+    "$SHARE_DIR/scripts/mango-ipc" dispatch "spawn,$SHARE_DIR/scripts/bar restart" >/dev/null 2>&1 \
+        || ("$SHARE_DIR/scripts/bar" restart >/dev/null 2>&1 &)
     for _ in $(seq 1 50); do
         newbar=""
         for p in $(pgrep -x -u "$USER" qs); do
