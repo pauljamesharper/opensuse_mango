@@ -32,23 +32,29 @@ FloatingWindow {
     readonly property bool focused: Wm.of(Wm.monitor).appid === "org.quickshell"
                                     && Wm.of(Wm.monitor).title === title
     // the first open sizes it to the focused output; later opens keep the
-    // size it was given
-    property bool sized: false
+    // size it was given, shrunk to fit a smaller output without forgetting it
+    property size wanted: Qt.size(0, 0)
+    property size applied: Qt.size(0, 0)
     function show() {
-        if (!sized) {
-            const scr = Quickshell.screens.find(o => o.name === Wm.monitor) ?? Quickshell.screens[0]
-            const fw = (scr ? scr.width : 1920) / s
-            const fh = (scr ? scr.height : 1080) / s
-            implicitWidth = Math.round(Math.min(1560, fw - 64) * s)
-            implicitHeight = Math.round(fh * 0.8 * s)
-            sized = true
-        }
-        if (visible && !focused) {
-            // unmapped first, mapped again a tick later: the same tick is a no-op
+        if (visible && focused)
+            return
+        if (visible) {
+            // open elsewhere: unmapped first, mapped here a tick later (the
+            // same tick is a no-op), sized while unmapped
             visible = false
-            Qt.callLater(() => root.visible = true)
+            Qt.callLater(show)
             return
         }
+        const scr = Quickshell.screens.find(o => o.name === Wm.monitor) ?? Quickshell.screens[0]
+        const sw = scr ? scr.width : 1920
+        const sh = scr ? scr.height : 1080
+        if (wanted.width === 0)
+            wanted = Qt.size(Math.round(Math.min(1560, sw / s - 64) * s), Math.round(sh * 0.8))
+        else if (width !== applied.width || height !== applied.height)
+            wanted = Qt.size(width, height)   // resized since the last open
+        applied = Qt.size(Math.min(wanted.width, sw - 64 * s), Math.min(wanted.height, Math.round(sh * 0.9)))
+        implicitWidth = applied.width
+        implicitHeight = applied.height
         visible = true
     }
     // mango's close (Super+q) ends the window without telling `visible`
