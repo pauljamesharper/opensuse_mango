@@ -74,7 +74,7 @@ get)
         }' "$CONF"
     ;;
 set)
-    n="${2:?line}"; line=$(fmt "$3" "$4" "$5" "$6" "$7"); desc="$5"; tmp="$CONF.new"
+    n="${2:?line}"; line=$(fmt "$3" "$4" "$5" "$6" "$7"); desc="$5"; tmp="$CONF.tmp"
     awk -v n="$n" -v l="$line" -v d="$desc" '
         { L[NR] = $0 }
         END {
@@ -89,7 +89,7 @@ set)
     echo "$n"
     ;;
 add)
-    sec="${2:?section}"; line=$(fmt "$3" "$4" "$5" "$6" "$7"); desc="$5"; tmp="$CONF.new"
+    sec="${2:?section}"; line=$(fmt "$3" "$4" "$5" "$6" "$7"); desc="$5"; tmp="$CONF.tmp"
     ins=$(awk -v sec="$sec" '
         /^#[ \t]*---/ { s = $0; sub(/^#[ \t]*---[ \t]*/, "", s); sub(/[ \t]*(---|:|\().*$/, "", s)
                        insec = (tolower(s) == tolower(sec)); if (insec) last = NR; next }
@@ -107,7 +107,7 @@ add)
     echo "$newline"
     ;;
 delete)
-    n="${2:?line}"; tmp="$CONF.new"
+    n="${2:?line}"; tmp="$CONF.tmp"
     awk -v n="$n" '
         { L[NR] = $0 }
         END {

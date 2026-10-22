@@ -143,7 +143,7 @@ get)
     }' "$CONF"
     ;;
 set)
-    n="${2:?line}"; shift 2; validate "$@" || exit 1; line=$(fmt "$@"); note="$9"; tmp="$CONF.new"
+    n="${2:?line}"; shift 2; validate "$@" || exit 1; line=$(fmt "$@"); note="$9"; tmp="$CONF.tmp"
     # the rule's line moves when its note comes or goes: the new number is printed
     newline=$(awk -v n="$n" -v l="$line" -v d="$note" "$fields_awk"'
         { L[NR] = $0 }
@@ -160,7 +160,7 @@ set)
     echo "$newline"
     ;;
 add)
-    sec="${2:?section}"; shift 2; validate "$@" || exit 1; line=$(fmt "$@"); note="$9"; tmp="$CONF.new"
+    sec="${2:?section}"; shift 2; validate "$@" || exit 1; line=$(fmt "$@"); note="$9"; tmp="$CONF.tmp"
     [ -f "$CONF" ] || : > "$CONF"
     ins=$(awk -v sec="$sec" '
         /^#[ \t]*---/ { s = $0; sub(/^#[ \t]*---[ \t]*/, "", s); sub(/[ \t]*(---|:|\().*$/, "", s)
@@ -179,7 +179,7 @@ add)
     echo "$newline"
     ;;
 delete)
-    n="${2:?line}"; tmp="$CONF.new"
+    n="${2:?line}"; tmp="$CONF.tmp"
     awk -v n="$n" "$fields_awk"'
         { L[NR] = $0 }
         END { hd = hasnote(n); for (i = 1; i <= NR; i++) { if (i == n || (hd && i == n - 1)) continue; print L[i] } }' "$CONF" > "$tmp"
