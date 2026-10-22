@@ -202,6 +202,20 @@ Singleton {
         path: root.stateDir + "/tag-icons"
         onLoaded: root.tagIcons = text().trim() === "1"
     }
+    // how many tags the strip shows (0 = all) and whether it skips empty
+    // ones; the focused tag and urgent ones show regardless (Bar tab)
+    property int tagsShown: 0
+    StateFile {
+        path: root.stateDir + "/tags-shown"
+        onLoaded: root.tagsShown = Math.max(parseInt(text()) || 0, 0)
+        onLoadFailed: root.tagsShown = 0
+    }
+    property bool tagsHideEmpty: false
+    StateFile {
+        path: root.stateDir + "/tags-hide-empty"
+        onLoaded: root.tagsHideEmpty = text().trim() === "1"
+        onLoadFailed: root.tagsHideEmpty = false
+    }
 
     // not part of barStateReady: popups aren't open at start
     StateFile {

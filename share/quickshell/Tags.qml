@@ -6,13 +6,16 @@ import Quickshell.Widgets
 // cell, empty = small dot; widths and colors animate on every change.
 // With the "Tag icons" toggle on, an occupied cell also carries the icons
 // of the apps on it (one per app, at most three), so the strip answers
-// "where did I leave Firefox" by itself.
+// "where did I leave Firefox" by itself. The Bar tab can show only the
+// first N tags and skip empty ones; the focused tag and urgent ones always
+// show, so a key that lands past N never leaves you on an unseen tag.
 Item {
     id: strip
     // this bar's output: its tags, not the focused monitor's
     readonly property string mon: QsWindow.window?.screen?.name ?? ""
     readonly property var st: Wm.of(mon)
     readonly property var monApps: Wm.tagApps[mon] ?? ({})
+    readonly property int shown: Theme.tagsShown > 0 ? Theme.tagsShown : st.tagCount
 
     implicitWidth: tagRow.implicitWidth
     implicitHeight: Math.round(22 * Theme.barScale)
@@ -37,6 +40,8 @@ Item {
                 readonly property bool urgent: (strip.st.urgtags & (1 << index)) !== 0
                 readonly property var apps: Theme.tagIcons ? (strip.monApps[index] ?? []).slice(0, 3) : []
                 readonly property int iconPx: Math.round(14 * Theme.barScale)
+                visible: selected || urgent
+                         || (index < strip.shown && (occupied || !Theme.tagsHideEmpty))
 
                 width: Math.round((selected ? 30 : occupied ? 22 : 12) * Theme.barScale)
                        + apps.length * (iconPx + Math.round(3 * Theme.barScale))

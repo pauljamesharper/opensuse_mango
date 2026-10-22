@@ -1,8 +1,8 @@
 import QtQuick
 
 // The bar's own settings, as a column for the settings panel's Bar tab:
-// tag icons, height, element scale and popup size, each persisted to a
-// state file Theme.qml watches.
+// tag icons, which tags show, height, element scale and popup size, each
+// persisted to a state file Theme.qml watches.
 Column {
     id: root
     spacing: 6
@@ -21,10 +21,24 @@ Column {
                   run: () => {
                       Theme.tagIcons = !Theme.tagIcons
                       Theme.writeState("tag-icons", Theme.tagIcons ? 1 : 0)
+                  } },
+                { icon: "󰈉", label: "Hide empty", active: Theme.tagsHideEmpty,
+                  run: () => {
+                      Theme.tagsHideEmpty = !Theme.tagsHideEmpty
+                      Theme.writeState("tags-hide-empty", Theme.tagsHideEmpty ? 1 : 0)
                   } }
             ]
             TogglePill { width: (barGrid.width - 8) / 3 }
         }
+    }
+    // the last step is "all": every tag the compositor has, whatever its count
+    TweakSlider {
+        readonly property int count: Wm.of(Wm.monitor).tagCount
+        label: "tags shown"
+        from: 1; to: count
+        value: Theme.tagsShown > 0 ? Math.min(Theme.tagsShown, count) : count
+        applyFn: v => Theme.tagsShown = v >= count ? 0 : v
+        persistFn: v => Theme.writeState("tags-shown", v >= count ? 0 : v)
     }
     TweakSlider {
         label: "bar height"
