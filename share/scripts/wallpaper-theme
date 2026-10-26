@@ -319,12 +319,14 @@ if gtk_template_ok; then
     done
 fi
 
-# 8. Reload — dunst is respawned with the new colors; mango re-reads its
-#    config (and the sourced theme.conf) in place; quickshell re-themes
-#    live via colors.ini.
-pkill -x dunst 2>/dev/null || true
-dunst -config "$DUNSTRC" >/dev/null 2>&1 9>&- &
+# 8. Reload — dunst re-reads its file in place (dunstctl reload), or is
+#    started again where it can't and then waited for, so the notice below
+#    lands in the new colors; mango re-reads its config (and the sourced
+#    theme.conf) in place; quickshell re-themes live via colors.ini.
 "$SHARE/scripts/mango-reload" >/dev/null 2>&1 || true
-
-sleep 0.5
+if ! dunstctl reload "$DUNSTRC" >/dev/null 2>&1; then
+    pkill -x dunst 2>/dev/null || true
+    dunst -config "$DUNSTRC" >/dev/null 2>&1 9>&- &
+    sleep 0.5
+fi
 notify-send -a "Wallpaper" -t 2500 "Wallpaper theme" "Palette from $(basename "$IMG")"
