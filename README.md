@@ -29,7 +29,8 @@ cd mangobutter
 ```
 ./install.sh [OPTIONS]
 
-  --only-config      Only copy config files (skip packages)
+  --only-config      Config files; on Debian also the packages added to the list
+                     since, one at a time, never removing anything
   --help             Show usage
 ```
 

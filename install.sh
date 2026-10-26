@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# mangobutter installer (--only-config: the setup's files, no packages)
+# mangobutter installer (--only-config: the setup's files, and on Debian the
+# packages added to the list since, never removing any)
 
 set -e
 
@@ -13,7 +14,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         --help)
             echo "Usage: $0 [OPTIONS]"
-            echo "  --only-config      Only copy config files (skip packages)"
+            echo "  --only-config      Config files; on Debian also packages added since (never removes any)"
             echo "  --help            Show this help message"
             exit 0
             ;;
@@ -111,6 +112,8 @@ PACKAGES=(
     x11-xserver-utils
     # gtk + icon themes (butterrepo: prebuilt vinceliuice selections, see deb-builders)
     orchis-gtk-theme-butter colloid-icon-theme-butter
+    # the wallpaper picker's palette (butterrepo: a small C program the setups share)
+    butterpal
     nwg-look xsettingsd lxpolkit
     # file manager
     thunar thunar-archive-plugin thunar-volman
@@ -154,7 +157,30 @@ if [ "$ONLY_CONFIG" = false ]; then
         sudo systemctl disable --now seatd
     fi
 else
-    msg "Skipping package installation (--only-config mode)"
+    # --only-config: the setup's files, and on Debian the packages added to
+    # the list since (the Update button runs this): one at a time and never
+    # removing anything, so a system set up its own way (XLibre in place of
+    # xorg, say) keeps what it has. Lists too old to know a new package are
+    # refreshed once.
+    if command -v apt-get >/dev/null 2>&1 && command -v dpkg-query >/dev/null 2>&1; then
+        missing=()
+        for p in "${PACKAGES[@]}"; do
+            [ "$p" = quickshell ] && command -v qs >/dev/null 2>&1 && continue
+            [ "$(dpkg-query -W -f='${db:Status-Status}' "$p" 2>/dev/null)" = installed ] || missing+=("$p")
+        done
+        if [ ${#missing[@]} -gt 0 ]; then
+            msg "Installing packages added since your install: ${missing[*]}"
+            refreshed=false
+            for p in "${missing[@]}"; do
+                sudo apt-get install -y --no-remove "$p" && continue
+                if [ "$refreshed" = false ]; then
+                    refreshed=true
+                    sudo apt-get update && sudo apt-get install -y --no-remove "$p" && continue
+                fi
+                warn "$p not installed (apt can't find it, or it would remove a package) - sudo apt install $p"
+            done
+        fi
+    fi
 fi
 
 # Three folders, by owner (see README, "Making it yours"):
