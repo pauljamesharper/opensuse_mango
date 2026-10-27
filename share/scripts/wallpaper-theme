@@ -268,7 +268,8 @@ if gtk_template_ok; then
     # Icons — pick the installed Colloid variant whose folders are nearest
     # the palette's primary hue (selection, not recoloring). The folders
     # decide, not the names: reds, golds and yellows take Orange's (the only
-    # warm ones; Gruvbox's are sage), purples Purple's, pinks Pink's.
+    # warm ones; Gruvbox's are sage), purples Purple's, pinks Pink's; a
+    # muted blue Nord's slate (#89a3c2), a vivid one Colloid's sky blue.
     # Gray for washed-out palettes. Skipped if not installed.
     R=$(printf '%d' "0x$(printf %s "${PRIMARY#\#}" | cut -c1-2)")
     G=$(printf '%d' "0x$(printf %s "${PRIMARY#\#}" | cut -c3-4)")
@@ -286,7 +287,7 @@ if gtk_template_ok; then
     if   [ "$SAT" -lt 15 ]; then ICONS="Colloid-Grey-Dracula-Dark"
     elif [ "$HUE" -lt 95 ];  then ICONS="Colloid-Orange-Dark"
     elif [ "$HUE" -lt 165 ]; then ICONS="Colloid-Everforest-Dark"
-    elif [ "$HUE" -lt 215 ]; then ICONS="Colloid-Nord-Dark"
+    elif [ "$HUE" -lt 265 ] && [ "$SAT" -lt 45 ]; then ICONS="Colloid-Nord-Dark"
     elif [ "$HUE" -lt 265 ]; then ICONS="Colloid-Dark"
     elif [ "$HUE" -lt 315 ]; then ICONS="Colloid-Purple-Dark"
     else ICONS="Colloid-Pink-Dark"; fi
