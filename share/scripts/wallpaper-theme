@@ -265,9 +265,11 @@ if gtk_template_ok; then
 
     sed -i "s/^gtk-theme-name=.*/gtk-theme-name=$NEW/" "$GTK3_CONF"
 
-    # Icons — pick the installed Colloid variant nearest the palette's
-    # primary hue (selection, not recoloring: the variants ARE the hue
-    # families). Gray for washed-out palettes. Skipped if not installed.
+    # Icons — pick the installed Colloid variant whose folders are nearest
+    # the palette's primary hue (selection, not recoloring). The folders
+    # decide, not the names: Orange's are the only warm ones, so reds,
+    # golds and yellows take them (Gruvbox's are sage). Gray for washed-out
+    # palettes. Skipped if not installed.
     R=$(printf '%d' "0x$(printf %s "${PRIMARY#\#}" | cut -c1-2)")
     G=$(printf '%d' "0x$(printf %s "${PRIMARY#\#}" | cut -c3-4)")
     B=$(printf '%d' "0x$(printf %s "${PRIMARY#\#}" | cut -c5-6)")
@@ -282,8 +284,7 @@ if gtk_template_ok; then
         printf "%d %d", h, (d/mx)*100}')
     HUE=$1; SAT=$2
     if   [ "$SAT" -lt 15 ]; then ICONS="Colloid-Grey-Dracula-Dark"
-    elif [ "$HUE" -lt 35 ] || [ "$HUE" -ge 340 ]; then ICONS="Colloid-Orange-Dark"
-    elif [ "$HUE" -lt 95 ];  then ICONS="Colloid-Gruvbox-Dark"
+    elif [ "$HUE" -lt 95 ] || [ "$HUE" -ge 340 ]; then ICONS="Colloid-Orange-Dark"
     elif [ "$HUE" -lt 165 ]; then ICONS="Colloid-Everforest-Dark"
     elif [ "$HUE" -lt 215 ]; then ICONS="Colloid-Nord-Dark"
     elif [ "$HUE" -lt 265 ]; then ICONS="Colloid-Dark"
