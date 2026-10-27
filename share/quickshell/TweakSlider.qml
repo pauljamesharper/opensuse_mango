@@ -12,6 +12,9 @@ Item {
     property real value: 0
     property bool isInt: true
     property string suffix: ""
+    // what the number on the right says, when it isn't the value itself
+    // (the bar size slider shows the height the bar comes out at)
+    property var display: null
     // false: apply only on release (the popup size slider — the picker
     // it lives in would otherwise resize under the cursor mid-drag)
     property bool live: true
@@ -38,7 +41,7 @@ Item {
     Txt {
         anchors.right: parent.right
         anchors.top: parent.top
-        text: ts.fmt(ts.shown) + ts.suffix
+        text: ts.display ? ts.display(ts.shown) : ts.fmt(ts.shown) + ts.suffix
         color: Theme.accent
         font.bold: true
     }

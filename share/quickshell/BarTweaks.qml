@@ -44,7 +44,8 @@ Column {
         label: "bar height"
         from: 36; to: 72
         value: Theme.barHeight
-        suffix: " px"
+        // the height the bar comes out at: a floor, which bigger elements raise
+        display: v => Math.max(Math.round(v), Theme.moduleHeight + Theme.edgeInset + 8) + " px"
         applyFn: v => Theme.barHeight = v
         persistFn: v => Theme.writeState("bar-height", v)
     }
