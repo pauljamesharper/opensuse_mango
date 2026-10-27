@@ -287,8 +287,8 @@ if gtk_template_ok; then
     if   [ "$SAT" -lt 15 ]; then ICONS="Colloid-Grey-Dracula-Dark"
     elif [ "$HUE" -lt 95 ];  then ICONS="Colloid-Orange-Dark"
     elif [ "$HUE" -lt 165 ]; then ICONS="Colloid-Everforest-Dark"
-    elif [ "$HUE" -lt 265 ] && [ "$SAT" -lt 45 ]; then ICONS="Colloid-Nord-Dark"
-    elif [ "$HUE" -lt 265 ]; then ICONS="Colloid-Dark"
+    elif [ "$HUE" -lt 245 ] && [ "$SAT" -lt 45 ]; then ICONS="Colloid-Nord-Dark"
+    elif [ "$HUE" -lt 245 ]; then ICONS="Colloid-Dark"
     elif [ "$HUE" -lt 315 ]; then ICONS="Colloid-Purple-Dark"
     else ICONS="Colloid-Pink-Dark"; fi
     if [ -d "$HOME/.local/share/icons/$ICONS" ] || [ -d "/usr/share/icons/$ICONS" ]; then
