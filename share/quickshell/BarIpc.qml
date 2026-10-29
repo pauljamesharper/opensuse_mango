@@ -12,12 +12,13 @@ Singleton {
 
     signal call(string target, string fn, string arg)
 
-    // the whole bar, every screen at once (no per-screen copies to pick from)
+    // the whole bar, every screen at once (no per-screen copies to pick from);
+    // `unhide`, not `show`: qs reads `ipc call bar show` as its own `show`
     IpcHandler {
         target: "bar"
         function toggle(): void { Theme.barHidden = !Theme.barHidden }
-        function show(): void { Theme.barHidden = false }
         function hide(): void { Theme.barHidden = true }
+        function unhide(): void { Theme.barHidden = false }
     }
 
     IpcHandler { target: "layouts";    function toggle(): void { root.call("layouts", "toggle", "") }  function open(): void { root.call("layouts", "open", "") }  function close(): void { root.call("layouts", "close", "") } }
