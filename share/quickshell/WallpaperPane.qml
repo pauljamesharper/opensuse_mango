@@ -44,7 +44,7 @@ Item {
         palette.running = true
     }
 
-    // butterpal prints the 24 colours wallpaper-theme takes, one a line
+    // butterpal prints the 24 colors wallpaper-theme takes, one a line
     property var _colors: []
     Process {
         id: palette
