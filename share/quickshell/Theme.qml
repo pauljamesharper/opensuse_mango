@@ -58,6 +58,11 @@ Singleton {
         onTriggered: root._barStateLoads = 2
     }
 
+    // `bar toggle` (Super+Ctrl+b) takes every bar off screen and puts it
+    // back; mango gives the space to the windows meanwhile. Not kept across
+    // a bar restart, so a restart always brings the bar back.
+    property bool barHidden: false
+
     property color bg: "#0d1117"
     property color altbg: "#161b22"
     property color fg: "#c9d1d9"

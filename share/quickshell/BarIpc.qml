@@ -12,6 +12,14 @@ Singleton {
 
     signal call(string target, string fn, string arg)
 
+    // the whole bar, every screen at once (no per-screen copies to pick from)
+    IpcHandler {
+        target: "bar"
+        function toggle(): void { Theme.barHidden = !Theme.barHidden }
+        function show(): void { Theme.barHidden = false }
+        function hide(): void { Theme.barHidden = true }
+    }
+
     IpcHandler { target: "layouts";    function toggle(): void { root.call("layouts", "toggle", "") }  function open(): void { root.call("layouts", "open", "") }  function close(): void { root.call("layouts", "close", "") } }
     IpcHandler { target: "tweaks";     function toggle(): void { root.call("tweaks", "toggle", "") }  function open(): void { root.call("tweaks", "open", "") }  function close(): void { root.call("tweaks", "close", "") } }
     IpcHandler { target: "volume";     function toggle(): void { root.call("volume", "toggle", "") }  function open(): void { root.call("volume", "open", "") }  function close(): void { root.call("volume", "close", "") } }

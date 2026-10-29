@@ -17,8 +17,9 @@ PanelWindow {
     }
     implicitHeight: Theme.effectiveBarHeight
     color: "transparent"
-    // map once, at final size — see Theme.barStateReady
-    visible: Theme.barStateReady
+    // map once, at final size — see Theme.barStateReady; off while hidden
+    // with `bar toggle`
+    visible: Theme.barStateReady && !Theme.barHidden
 
     Rectangle {
         id: panel
