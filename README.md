@@ -1,17 +1,17 @@
 # 🥭 mangobutter
 
-mangobutter: [butterdwm](https://justaguy.dev/drew/butterdwm)'s Wayland cousin. Same butter, more mango.
+mangobutter: [butterdwm](https://justaguy.dev/butter/dwm)'s Wayland cousin. Same butter, more mango.
 
 ![Made for Debian](https://img.shields.io/badge/Made%20for-Debian%2013-A81D33?style=flat-square&logo=debian&logoColor=white)
 ![MangoWM](https://img.shields.io/badge/MangoWM-0.14.4-5294E2?style=flat-square&logo=wayland&logoColor=white)
-![Last Commit](https://img.shields.io/gitea/last-commit/drew/mangobutter?gitea_url=https://justaguy.dev&style=flat-square&logo=forgejo&logoColor=white&color=green&label=Last%20Commit)
+![Last Commit](https://img.shields.io/gitea/last-commit/butter/mango?gitea_url=https://justaguy.dev&style=flat-square&logo=forgejo&logoColor=white&color=green&label=Last%20Commit)
 
 [MangoWM](https://github.com/mangowm/mango) at the core, a quickshell bar on top, for Debian 13 (trixie).
 dwm's brain with Hyprland's face, on plain Debian stable.
 
 ![mangobutter screenshot](screenshots/desktop.png)
 
-> 📚 **The documentation is the [wiki](https://justaguy.dev/drew/mangobutter/wiki).** This README gets you installed and tells you the four things to know. Everything else, keybinds, the settings panel, scratchpads, theming, multi-monitor, the 0.14.4 pin, upgrading, troubleshooting, lives there.
+> 📚 **The documentation is the [wiki](https://justaguy.dev/butter/mango/wiki).** This README gets you installed and tells you the four things to know. Everything else, keybinds, the settings panel, scratchpads, theming, multi-monitor, the 0.14.4 pin, upgrading, troubleshooting, lives there.
 
 Starting from a bare machine? [butterknife](https://justaguy.dev/drew/butterknife) installs Debian 13 with this setup picked from a menu. Part of the [JustAGuy Linux](https://justaguy.dev/drew) window manager collection and the [Butterbian](https://butterbian.org) family. Formerly mangowc-setup; the old URL redirects.
 
@@ -21,8 +21,8 @@ Starting from a bare machine? [butterknife](https://justaguy.dev/drew/butterknif
 
 ```bash
 sudo apt install git      # a minimal Debian doesn't have it
-git clone https://justaguy.dev/drew/mangobutter.git
-cd mangobutter
+git clone https://justaguy.dev/butter/mango.git
+cd mango
 ./install.sh
 ```
 
@@ -34,9 +34,9 @@ cd mangobutter
   --help             Show usage
 ```
 
-Then reboot and pick **Mango** at the login screen. The installer refreshes and upgrades the system (`apt-get upgrade`), adds [butterrepo](https://justaguy.dev/drew/butterrepo) and takes the compositor stack and themes from it (`mangowc` 0.14.4, `libwlroots-0.19`, `libscenefx-0.4`, `quickshell`, `rofi`, `awww`, Orchis and Colloid), installs the rest from Debian (see the wiki's [Packages](https://justaguy.dev/drew/mangobutter/wiki/Packages) page), pulls kitty, Nerd Fonts and LightDM through [butterscripts](https://justaguy.dev/drew/butterscripts), installs the `mango-session` login wrapper, and ends with an optional tools prompt.
+Then reboot and pick **Mango** at the login screen. The installer refreshes and upgrades the system (`apt-get upgrade`), adds [butterrepo](https://justaguy.dev/drew/butterrepo) and takes the compositor stack and themes from it (`mangowc` 0.14.4, `libwlroots-0.19`, `libscenefx-0.4`, `quickshell`, `rofi`, `awww`, Orchis and Colloid), installs the rest from Debian (see the wiki's [Packages](https://justaguy.dev/butter/mango/wiki/Packages) page), pulls kitty, Nerd Fonts and LightDM through [butterscripts](https://justaguy.dev/drew/butterscripts), installs the `mango-session` login wrapper, and ends with an optional tools prompt.
 
-Debian 13 is the only base. Anything else, forky, sid, Ubuntu, the installer refuses on purpose: the reason is the wlroots pin, explained on the wiki's [Why 0.14.4](https://justaguy.dev/drew/mangobutter/wiki/Why-0.14.4) page.
+Debian 13 is the only base. Anything else, forky, sid, Ubuntu, the installer refuses on purpose: the reason is the wlroots pin, explained on the wiki's [Why 0.14.4](https://justaguy.dev/butter/mango/wiki/Why-0.14.4) page.
 
 > ⚠️ **NVIDIA: untested.** Only run on AMD so far. The installer runs `nvidia-setup.sh` when it sees the proprietary driver; nobody has verified blur, shadows and rounded corners on it. Reports welcome either way.
 
@@ -52,15 +52,15 @@ Debian 13 is the only base. Anything else, forky, sid, Ubuntu, the installer ref
 
 3. **`Super + Shift + R` reloads.** No restart, no logout. `mango -p` checks a config for mistakes and names the file and line.
 
-4. **Updating is a menu entry.** `Super + Shift + m`, then **Update setup**: it pulls the clone you installed from and reinstalls in place, the way dpkg treats a conffile. A file you edited stays as it is; if the shipped version changed too, the new one lands beside yours as `.new` and the installer says so, once. The setup's own files are replaced, your settings and colors are left alone. Nothing checks on its own. [Upgrading](https://justaguy.dev/drew/mangobutter/wiki/Upgrading) has the rule.
+4. **Updating is a menu entry.** `Super + Shift + m`, then **Update setup**: it pulls the clone you installed from and reinstalls in place, the way dpkg treats a conffile. A file you edited stays as it is; if the shipped version changed too, the new one lands beside yours as `.new` and the installer says so, once. The setup's own files are replaced, your settings and colors are left alone. Nothing checks on its own. [Upgrading](https://justaguy.dev/butter/mango/wiki/Upgrading) has the rule.
 
-Everything else is on the wiki: [Keybinds](https://justaguy.dev/drew/mangobutter/wiki/Keybinds) · [Settings Panel](https://justaguy.dev/drew/mangobutter/wiki/Settings-Panel) · [Scratchpads](https://justaguy.dev/drew/mangobutter/wiki/Scratchpads) · [Customization](https://justaguy.dev/drew/mangobutter/wiki/Customization) · [Themes](https://justaguy.dev/drew/mangobutter/wiki/Themes) · [Multi-Monitor](https://justaguy.dev/drew/mangobutter/wiki/Multi-Monitor) · [Why 0.14.4](https://justaguy.dev/drew/mangobutter/wiki/Why-0.14.4) · [Upgrading](https://justaguy.dev/drew/mangobutter/wiki/Upgrading) · [Troubleshooting](https://justaguy.dev/drew/mangobutter/wiki/Troubleshooting)
+Everything else is on the wiki: [Keybinds](https://justaguy.dev/butter/mango/wiki/Keybinds) · [Settings Panel](https://justaguy.dev/butter/mango/wiki/Settings-Panel) · [Scratchpads](https://justaguy.dev/butter/mango/wiki/Scratchpads) · [Customization](https://justaguy.dev/butter/mango/wiki/Customization) · [Themes](https://justaguy.dev/butter/mango/wiki/Themes) · [Multi-Monitor](https://justaguy.dev/butter/mango/wiki/Multi-Monitor) · [Why 0.14.4](https://justaguy.dev/butter/mango/wiki/Why-0.14.4) · [Upgrading](https://justaguy.dev/butter/mango/wiki/Upgrading) · [Troubleshooting](https://justaguy.dev/butter/mango/wiki/Troubleshooting)
 
 ---
 
 ## WHY MANGO
 
-Mango is dwm's model, tags and a master stack, as a wlroots compositor with scenefx underneath: blur, shadows, rounded corners and animations without a plugin in sight. It reads one text config, reloads it in place, and has an IPC the bar can talk to. On top of it sits the same [quickshell](https://quickshell.org/) bar as [butterdwm](https://justaguy.dev/drew/butterdwm): tag pills with live occupancy, a launcher, layout picker, tray, media, weather, network, the settings panel, and wallpaper-driven theming that recolors the whole desktop. On Wayland it is a layer-shell surface, so there is nothing to patch and nothing to hand-merge on the next release. The full reasoning is on the wiki's [Architecture](https://justaguy.dev/drew/mangobutter/wiki/Architecture) page.
+Mango is dwm's model, tags and a master stack, as a wlroots compositor with scenefx underneath: blur, shadows, rounded corners and animations without a plugin in sight. It reads one text config, reloads it in place, and has an IPC the bar can talk to. On top of it sits the same [quickshell](https://quickshell.org/) bar as [butterdwm](https://justaguy.dev/butter/dwm): tag pills with live occupancy, a launcher, layout picker, tray, media, weather, network, the settings panel, and wallpaper-driven theming that recolors the whole desktop. On Wayland it is a layer-shell surface, so there is nothing to patch and nothing to hand-merge on the next release. The full reasoning is on the wiki's [Architecture](https://justaguy.dev/butter/mango/wiki/Architecture) page.
 
 ---
 

@@ -67,7 +67,7 @@ fi
 
 # an update keeps what setup-update printed above it
 [ "$ONLY_CONFIG" = true ] || clear 2>/dev/null || true
-printf '\033[1mmangobutter\033[0m\n\033[2mmango for Debian · justaguy.dev/drew/mangobutter\033[0m\n\n'
+printf '\033[1mmangobutter\033[0m\n\033[2mmango for Debian · justaguy.dev/butter/mango\033[0m\n\n'
 
 # A machine with no login screen yet (a minimal Debian) needs a reboot at
 # the end, not a logout: remembered now, before one gets installed
