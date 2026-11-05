@@ -1,8 +1,8 @@
 #!/bin/sh
 # screenshot [full|region|copy|edit] — grim, plus slurp to drag a region.
-#   full     whole screen, saved to ~/Screenshots        (Super+S, Print)
-#   region   drag a region, saved                        (Super+Shift+S, Shift+Print)
-#   copy     drag a region, onto the clipboard only      (Super+Ctrl+S, Ctrl+Print)
+#   full     whole screen, saved to ~/Screenshots        (Super+S)
+#   region   drag a region, saved                        (Super+Shift+S)
+#   copy     drag a region, onto the clipboard only      (Super+Ctrl+S)
 #   edit     drag a region, open it in swappy to draw    (Super+Alt+S)
 #            arrows / boxes / text / blur; Ctrl+S saves it to ~/Screenshots,
 #            Ctrl+C copies, either closes it (swappy/config)
