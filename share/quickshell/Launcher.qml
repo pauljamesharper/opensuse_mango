@@ -4,12 +4,10 @@ import QtQuick
 //   left: app launcher (LauncherPopup) · right: the settings panel's
 //   Wallpaper tab · middle: random wallpaper
 // Both wallpaper paths re-theme the desktop from the image's palette.
-// FiraCode NF carries the Font Logos glyph; JetBrainsMono NF here doesn't.
 BarModule {
     id: root
 
-    icon: ""  // Debian swirl (Font Logos)
-    iconFont: "FiraCode Nerd Font"
+    icon: ""  // Debian swirl (Font Logos, in JetBrains Mono Nerd Font too)
     iconColor: Theme.accent
     onClicked: mouse => {
         if (mouse.button === Qt.RightButton)
