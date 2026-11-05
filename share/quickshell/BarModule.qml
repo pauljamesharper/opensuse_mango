@@ -9,7 +9,7 @@ Rectangle {
     // a warning pill: red fill, icon and label in the background color
     property bool alert: false
     property color iconColor: alert ? Theme.bg : Theme.accent
-    // some glyphs (e.g. Font Logos ) are missing from JetBrainsMono NF here
+    // the icon's font; a module can set its own
     property string iconFont: Theme.fontFamily
     property string label: ""
     property color labelColor: alert ? Theme.bg : Theme.fg

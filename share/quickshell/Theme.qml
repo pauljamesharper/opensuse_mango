@@ -82,7 +82,7 @@ Singleton {
     readonly property color cyan: secondary
     readonly property color magenta: secondary
 
-    readonly property string fontFamily: "JetBrainsMono Nerd Font"
+    readonly property string fontFamily: "RobotoMono Nerd Font"
 
     // Base scale from the outputs' logical short side: 1.0 at 1080p, 1.33
     // at 1440p, 2.0 at unscaled 4K. A mango output scale shrinks the

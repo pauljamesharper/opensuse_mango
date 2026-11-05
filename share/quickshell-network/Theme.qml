@@ -23,7 +23,7 @@ Singleton {
     property color alert: "#f85149"
     property color disabled: "#484f58"
 
-    readonly property string fontFamily: "JetBrainsMono Nerd Font"
+    readonly property string fontFamily: "RobotoMono Nerd Font"
 
     // the bar's popup scale, read from the same file
     property real popupScale: 1.0

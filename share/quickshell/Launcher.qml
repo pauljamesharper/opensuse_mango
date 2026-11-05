@@ -7,7 +7,7 @@ import QtQuick
 BarModule {
     id: root
 
-    icon: ""  // Debian swirl (Font Logos, in JetBrains Mono Nerd Font too)
+    icon: ""  // Debian swirl (Font Logos, in Roboto Mono Nerd Font too)
     iconColor: Theme.accent
     onClicked: mouse => {
         if (mouse.button === Qt.RightButton)
