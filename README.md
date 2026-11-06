@@ -83,24 +83,27 @@ Mango is dwm's model, tags and a master stack, as a wlroots compositor with scen
 
 This project is a config on top of other people's software. Mango is by [DreamMaoMao](https://github.com/DreamMaoMao) and [contributors](https://github.com/mangowm/mango), on [wlroots](https://gitlab.freedesktop.org/wlroots/wlroots) and [scenefx](https://github.com/wlrfx/scenefx). Quickshell by [outfoxxed](https://git.outfoxxed.me/quickshell/quickshell). awww by [LGFae](https://codeberg.org/LGFae/awww). rofi-wayland by [lbonn](https://github.com/lbonn/rofi). dunst by the [dunst project](https://dunst-project.org). kitty by [Kovid Goyal](https://sw.kovidgoyal.net/kitty/). GTK and icon themes by [vinceliuice](https://github.com/vinceliuice): [Orchis](https://github.com/vinceliuice/Orchis-theme) and [Colloid](https://github.com/vinceliuice/Colloid-icon-theme).
 
-## LICENSE
+---
 
-GPL-2.0. See [LICENSE](LICENSE).
-
-## SUPPORT
+## Support
 
 <a href="https://www.buymeacoffee.com/justaguylinux" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy me a coffee" /></a>
 
-## CONNECT
+## Connect
 
 - [YouTube](https://youtube.com/@justaguylinux) — tutorials and guides
 - [Butterforge](https://justaguy.dev/drew) — source code and projects
+- [Butter desktops](https://justaguy.dev/butter) — ready-to-use window manager desktops for Debian
 - [The Butter Lab](https://lab.justaguylinux.com) — Discourse forum
 - [The Churn](https://justaguylinux.chat) — community chat (Fluxer)
 - [Wiki](https://justaguy.wiki) — documentation and guides
 - [Mastodon](https://fosstodon.org/@justaguylinux) — @justaguylinux@fosstodon.org
-- [Butterbian](https://butterbian.org) — a Debian-based distro
+- [Butterbian](https://butterbian.org) — a maintained Debian derivative built on Debian stable
+
+## License
+
+GPL-2.0. See [LICENSE](LICENSE).
 
 ---
 
-Made with butter by JustAGuyLinux
+Made with 🧈 by JustAGuyLinux
