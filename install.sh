@@ -524,22 +524,8 @@ echo "5. Super + Shift + m for the command menu"
 echo "To update later: 'Update setup' in the command menu (or cd $SCRIPT_DIR && git pull && ./install.sh)"
 echo "Installation log: $LOG_FILE"
 
-# NetworkManager leaves alone any interface Debian's installer wrote into
-# /etc/network/interfaces, which a netinst without a desktop does for the
-# wired one. The connection works but the bar can't see it. Say so, with
-# the fix: changing a machine's network setup is its owner's call.
-# The test is narrow on purpose: the interface carrying the default route
-# is the one NetworkManager calls unmanaged. A second, unused port listed
-# in that file is nobody's problem.
-dev=$(ip route show default 2>/dev/null | awk '{ for (i = 1; i < NF; i++) if ($i == "dev") { print $(i + 1); exit } }')
-if [ -n "$dev" ] \
-   && nmcli -t -f DEVICE,STATE device status 2>/dev/null | grep -qx "$dev:unmanaged" \
-   && grep -qsE "^[[:space:]]*iface[[:space:]]+${dev}[[:space:]]" /etc/network/interfaces /etc/network/interfaces.d/*; then
-    echo
-    warn "Network: $dev is set up in /etc/network/interfaces, so NetworkManager leaves it alone."
-    echo "  Your connection works, but the bar's network icon will show offline and the"
-    echo "  network app will be empty. To hand a DHCP interface over to NetworkManager:"
-    echo "    sudo sed -i -E '/^(auto|allow-hotplug|iface) +$dev( |\$)/ s/^/#/' /etc/network/interfaces"
-    echo "    sudo reboot"
-    echo "  (a static address you set by hand belongs in NetworkManager first: nmtui)"
-fi
+# a connection NetworkManager leaves alone (Debian's netinst writes the wired
+# one into /etc/network/interfaces): a DHCP one is offered over, a static one
+# gets the fix (butterscripts' check_network_manager)
+mkdir -p "$TEMP_DIR" && wget -qO "$TEMP_DIR/check_network_manager.sh" "https://justaguy.dev/drew/butterscripts/raw/branch/main/system/check_network_manager.sh" \
+    && bash "$TEMP_DIR/check_network_manager.sh" "the bar's network icon will show offline and the network app will be empty" || true
