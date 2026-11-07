@@ -20,6 +20,19 @@ IMG="$1" BG="$2" ALTBG="$3" FG="$4" BORDER="$5"
 PRIMARY="$6" SECONDARY="$7" ALERT="$8" DISABLED="$9"
 shift 9  # $1..$16 are now the ANSI terminal colors
 
+# Urgent things (notifications, rofi's urgent rows) take the alert color,
+# unless it sits too close to the primary to tell apart (a warm wallpaper
+# gives a warm alert): then a plain red, or the second color if the
+# primary is red itself
+URGENT=$(awk -v p="$PRIMARY" -v a="$ALERT" -v s="$SECONDARY" '
+    function hx(c, i) { return index("0123456789abcdef", tolower(substr(c, i, 1))) - 1 }
+    function ch(c, o) { return hx(c, o) * 16 + hx(c, o + 1) }
+    function d(x, y) { return sqrt((ch(x,2)-ch(y,2))^2 + (ch(x,4)-ch(y,4))^2 + (ch(x,6)-ch(y,6))^2) }
+    BEGIN { r = "#e5534b"; print (d(p, a) >= 80 ? a : (d(p, r) >= 80 ? r : s)) }')
+URGENT_BG=$(awk -v a="$URGENT" -v b="$BG" 'function hx(s, i) { return index("0123456789abcdef", tolower(substr(s, i, 1))) - 1 }
+    function ch(s, o) { return hx(s, o) * 16 + hx(s, o + 1) }
+    BEGIN { r = 0.2; printf "#%02x%02x%02x", ch(a,2)*r + ch(b,2)*(1-r) + 0.5, ch(a,4)*r + ch(b,4)*(1-r) + 0.5, ch(a,6)*r + ch(b,6)*(1-r) + 0.5 }')
+
 [ -f "$IMG" ] || { echo "no such wallpaper: $IMG" >&2; exit 1; }
 
 # Serialize concurrent runs — the last pick wins whole. Spawned daemons
@@ -65,7 +78,7 @@ cat > "$STATE/colors.rasi" <<EOF
     accent:      $PRIMARY;
     accent-2:    $SECONDARY;
     border:      $PRIMARY;
-    urgent:      $ALERT;
+    urgent:      $URGENT;
     selected-fg: $FG;
     entry-fg:    $SECONDARY;
     prompt-fg:   $PRIMARY;
@@ -90,10 +103,10 @@ set_dunst bg_normal          "$BG"
 set_dunst fg_normal          "$FG"
 set_dunst frame_normal       "$PRIMARY"
 set_dunst highlight_normal   "$PRIMARY"
-set_dunst bg_critical        "$BG"
+set_dunst bg_critical        "$URGENT_BG"
 set_dunst fg_critical        "$FG"
-set_dunst frame_critical     "$ALERT"
-set_dunst highlight_critical "$ALERT"
+set_dunst frame_critical     "$URGENT"
+set_dunst highlight_critical "$URGENT"
 
 # 5. Kitty — session-local config dir (KITTY_CONFIG_DIRECTORY); SIGUSR1
 #    reloads running instances. ~/.config/kitty is left alone.
