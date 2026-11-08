@@ -1,7 +1,8 @@
 import QtQuick
 
 // Debian swirl — the command center, no extra buttons needed:
-//   left: app launcher (LauncherPopup) · right: the settings panel's
+//   left: app launcher (LauncherPopup; the clipboard popup lives here
+//   too) · right: the settings panel's
 //   Wallpaper tab · middle: random wallpaper
 // Both wallpaper paths re-theme the desktop from the image's palette.
 BarModule {
@@ -20,6 +21,10 @@ BarModule {
 
     LauncherPopup {
         id: launcher
+        anchorItem: root
+    }
+
+    ClipboardPopup {
         anchorItem: root
     }
 }

@@ -37,6 +37,7 @@ Singleton {
         function close(): void { root.call("settings", "close", "") }
     }
     IpcHandler { target: "power";      function toggle(): void { root.call("power", "toggle", "") }  function open(): void { root.call("power", "open", "") }  function close(): void { root.call("power", "close", "") } }
+    IpcHandler { target: "clipboard";  function toggle(): void { root.call("clipboard", "toggle", "") }  function open(): void { root.call("clipboard", "open", "") }  function close(): void { root.call("clipboard", "close", "") } }
     IpcHandler {
         target: "weather"
         function toggle(): void { root.call("weather", "toggle", "") }

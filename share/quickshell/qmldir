@@ -37,6 +37,7 @@ NotifyPopup NotifyPopup.qml
 PowerPopup PowerPopup.qml
 MetricsPopup MetricsPopup.qml
 LauncherPopup LauncherPopup.qml
+ClipboardPopup ClipboardPopup.qml
 QuickTile QuickTile.qml
 RadarView RadarView.qml
 RulesPane RulesPane.qml

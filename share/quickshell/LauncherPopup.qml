@@ -48,6 +48,8 @@ Popout {
     readonly property var actions: [
         action("power", "Power menu", "󰐥", "shut down reboot restart log out logout power off",
                () => openPopup("power")),
+        action("clipboard", "Clipboard", "󰅌", "clipboard history copy paste clip",
+               () => openPopup("clipboard")),
         action("keybinds", "Keybindings", "󰌌", "keys shortcuts hotkeys help cheatsheet",
                () => ipcCall("settings", "open", "keybinds")),
         action("wallpaper", "Wallpaper", "󰋩", "background theme colors",
@@ -312,7 +314,7 @@ Popout {
                 anchors.left: parent.left
                 anchors.leftMargin: 12
                 anchors.verticalCenter: parent.verticalCenter
-                text: ""
+                text: "󰍉"
                 color: Theme.accent
                 font.pixelSize: 14
             }
