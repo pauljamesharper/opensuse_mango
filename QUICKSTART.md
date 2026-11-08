@@ -44,6 +44,7 @@ Super is the mod key. Keys: `~/.config/mango/keybinds.conf`; startup programs: `
 | Super + Shift + p | Settings panel, Wallpaper tab — a wallpaper re-themes bar, rofi, dunst, kitty, GTK and mango borders |
 | Super + Shift + m | Command menu (power profile, keep awake, night light, DND, pomodoro) |
 | Super + Shift + n | Network app (Wi-Fi, VPN, Bluetooth) |
+| Super + v | Clipboard history: Enter or a click copies an entry again |
 | Super + Shift + t | Settings panel, Layout tab — layouts, gaps, blur / shadows / animations (also: right-click an empty stretch of the bar) |
 | Super + s / Super + Shift + s | Screenshot full / region (saved to ~/Screenshots) |
 
