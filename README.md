@@ -1,5 +1,19 @@
 # 🥭 mangobutter
 
+> **openSUSE Tumbleweed fork.** A port of [justaguy.dev/butter/mango](https://justaguy.dev/butter/mango) to Tumbleweed; everything below this box is upstream's Debian README.
+>
+> ```bash
+> sudo zypper in git
+> git clone https://github.com/GITHUB_USER/opensuse_mango.git
+> cd opensuse_mango
+> ./install-opensuse.sh
+> ```
+>
+> What's different from upstream:
+> - `install-opensuse.sh`: packages from the Tumbleweed repos via zypper. mangowc, scenefx, quickshell, butterpal, butterview and the themes are built from source into `/usr/local`. SDDM is kept.
+> - Extras: git, stow, vim, emacs, alacritty, blueman, mise (+ claude), OCR tools, CJK/Thai/Arabic/Khmer fonts, Flathub with Focus Timer and Telegram. IceWM is removed and locked.
+> - `first-run/`: Omarchy-style one-time setup that opens in a terminal at the first login. It sets the hostname and git identity, starts an ssh-agent user service, creates an Ed25519 key and walks you through adding it to Codeberg, GitHub and GitLab, then runs `zypper dup`. Run it again any time with `mango-first-run --force`.
+
 mangobutter: [butterdwm](https://justaguy.dev/butter/dwm)'s Wayland cousin. Same butter, more mango.
 
 ![Made for Debian](https://img.shields.io/badge/Made%20for-Debian%2013-A81D33?style=flat-square&logo=debian&logoColor=white)

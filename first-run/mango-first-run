@@ -1,0 +1,97 @@
+#!/bin/bash
+# mango-first-run — one-time setup after login, modelled on Omarchy's
+# omarchy-first-run: a marker file says "not done yet"; autostart calls
+# this on every login, and it does nothing unless the marker exists.
+#
+#   mango-first-run          run if the marker exists (autostart uses this)
+#   mango-first-run --force  run now regardless of the marker
+#   mango-first-run --reset  re-arm it for the next login
+#   mango-first-run --install  add to mango autostart + arm (new machine)
+#
+# New machine: install-opensuse.sh puts these in place and arms it.
+# By hand: copy these three paths over, then run --install:
+#   ~/.local/bin/mango-first-run
+#   ~/.config/mango/first-run.d/
+#   ~/.config/systemd/user/ssh-agent.service
+#
+# It asks for the hostname, full name and email at the start; nothing
+# personal is hard-coded, so the same files work on any machine.
+#
+# Steps are the numbered scripts in ~/.config/mango/first-run.d/, run in
+# order inside a kitty window so they can ask questions. Each step is safe
+# to re-run. Unlike Omarchy, the marker is removed only once every step
+# succeeds, so a failed or cancelled run comes back at the next login.
+
+MARKER=${XDG_STATE_HOME:-$HOME/.local/state}/mango/first-run.mode
+STEPS=${XDG_CONFIG_HOME:-$HOME/.config}/mango/first-run.d
+
+case $1 in
+  --install)
+    auto=${XDG_CONFIG_HOME:-$HOME/.config}/mango/autostart.conf
+    grep -q 'mango-first-run' "$auto" 2>/dev/null ||
+      printf '\n# one-time setup on first login (does nothing once done)\nexec-once=~/.local/bin/mango-first-run\n' >> "$auto"
+    chmod +x "$0"
+    mkdir -p "${MARKER%/*}" && touch "$MARKER"
+    echo "Installed: runs at next login (or now: mango-first-run --force)."; exit ;;
+  --reset) mkdir -p "${MARKER%/*}" && touch "$MARKER" && echo "First-run armed for next login."; exit ;;
+  --force) ;;
+  --inside) ;;
+  *) [[ -f $MARKER ]] || exit 0 ;;
+esac
+
+# Re-launch inside a terminal when started from autostart (no tty).
+if [[ $1 != --inside && ! -t 0 ]]; then
+  exec kitty --class mango-first-run --title "First-run setup" "$0" --inside
+fi
+
+green=$'\e[1;32m' dim=$'\e[2m' red=$'\e[1;31m' off=$'\e[0m'
+printf '\n  %sopenSUSE Tumbleweed · mango%s  — first-run setup\n\n' "$green" "$off"
+
+# ask VAR "Prompt" "default" 'validation-regex' "what's wrong message"
+ask() {
+  local reply
+  while :; do
+    read -e -rp "  $2: " -i "$3" reply
+    reply=${reply#"${reply%%[![:space:]]*}"}; reply=${reply%"${reply##*[![:space:]]}"}
+    [[ $reply =~ $4 ]] && break
+    printf '  %s%s%s\n' "$red" "$5" "$off"
+  done
+  printf -v "$1" '%s' "$reply"
+}
+
+cur_host=$(hostnamectl --static 2>/dev/null); [[ -z $cur_host ]] && cur_host=$(hostname)
+[[ $cur_host == localhost* ]] && cur_host=""
+
+echo "  A few details first (Enter keeps what's shown):"
+ask FR_HOST  "Hostname"  "$cur_host" '^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$' \
+    "letters, digits and hyphens only; no hyphen at either end; up to 63 characters"
+ask FR_NAME  "Full name" "$(git config --global user.name)" '.' "a name is needed"
+ask FR_EMAIL "Email"     "$(git config --global user.email)" '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$' \
+    "that doesn't look like an email address"
+echo
+
+export FR_HOST FR_NAME FR_EMAIL
+export FR_KEY="$HOME/.ssh/id_ed25519"
+export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR:-/run/user/$UID}/ssh-agent.socket"
+
+failed=0
+for step in "$STEPS"/*.sh; do
+  [[ -f $step ]] || continue
+  name=$(basename "$step" .sh); name=${name#*-}
+  printf '%s━━ %s%s\n' "$green" "${name//-/ }" "$off"
+  if bash "$step"; then
+    printf '%s   done%s\n\n' "$dim" "$off"
+  else
+    printf '%s   step failed — it will run again next login (or: mango-first-run --force)%s\n\n' "$red" "$off"
+    failed=1
+  fi
+done
+
+if (( failed == 0 )); then
+  rm -f "$MARKER"
+  touch "${MARKER%.mode}.done"   # tells install-opensuse.sh not to re-arm it
+  printf '%sAll set.%s ' "$green" "$off"
+else
+  printf '%sSome steps need another go.%s ' "$red" "$off"
+fi
+read -rp "Press Enter to close. "
