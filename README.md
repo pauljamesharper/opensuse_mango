@@ -38,6 +38,7 @@ The installer:
 - builds `mangowc` 0.14.4 (with the patches Drew's packages carry), scenefx 0.4.1, quickshell, butterpal and butterview from source into `/usr/local`, and rebuilds them only when they are out of date or Tumbleweed moves Qt or wlroots underneath them
 - builds the Orchis and Colloid themes from vinceliuice's tagged releases
 - installs the `mango-session` login entry and keeps SDDM
+- starts `graphical-session.target` with mango (via `mango-session.target`) and points the portals at gtk/wlr, so flatpak file dialogs see your whole home folder
 - installs the Nerd Fonts through Drew's [butterscripts](https://justaguy.dev/drew/butterscripts)
 - rewrites the bar's package commands (update counter, "Check for updates", install hints) to `zypper`
 

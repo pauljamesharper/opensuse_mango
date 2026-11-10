@@ -684,6 +684,25 @@ if [ "$ONLY_CONFIG" = true ] && [ -n "${WAYLAND_DISPLAY:-}" ] && pgrep -x -u "$U
     "$SHARE_DIR/scripts/mango-ipc" dispatch reload_config >/dev/null 2>&1 || warn "mango did not reload config.conf; Super + Shift + r"
 fi
 
+# Session target + portal choice. Tumbleweed's xdg-desktop-portal.service is
+# Requisite=graphical-session.target, which only a session manager starts;
+# mango-session.target binds it (autostart.conf starts it before restarting
+# the portals). mango-portals.conf routes file dialogs to the gtk portal
+# (it declares UseIn=gnome only) and screen sharing to wlr. Without both,
+# flatpak apps like Telegram get a file picker that only sees their sandbox.
+install -Dm644 "$SCRIPT_DIR/session/mango-session.target" "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/mango-session.target"
+install -Dm644 "$SCRIPT_DIR/session/mango-portals.conf" "${XDG_CONFIG_HOME:-$HOME/.config}/xdg-desktop-portal/mango-portals.conf"
+systemctl --user daemon-reload 2>/dev/null || true
+# An autostart.conf kept from before this fix: add the target to its portal line
+if [ -f "$CONFIG_DIR/autostart.conf" ] && ! grep -q 'mango-session\.target' "$CONFIG_DIR/autostart.conf"; then
+    if grep -q '^exec-once=dbus-update-activation-environment .*systemctl --user restart xdg-desktop-portal' "$CONFIG_DIR/autostart.conf"; then
+        sed -i '/^exec-once=dbus-update-activation-environment /s#&& systemctl --user restart xdg-desktop-portal#\&\& systemctl --user start mango-session.target \&\& systemctl --user restart xdg-desktop-portal#' "$CONFIG_DIR/autostart.conf"
+        msg "Added mango-session.target to your autostart.conf (portals need it)"
+    else
+        warn "autostart.conf: start mango-session.target before the portals (see the shipped autostart.conf), or flatpak file dialogs stay sandboxed"
+    fi
+fi
+
 # First-run setup: hostname, git identity, ssh-agent, SSH key for Codeberg/
 # GitHub/GitLab, zypper dup. Files are refreshed on every run; it is armed
 # (runs in a terminal at next login) only until it has once completed.
