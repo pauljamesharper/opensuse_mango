@@ -4,7 +4,7 @@
 >
 > ```bash
 > sudo zypper in git
-> git clone https://github.com/GITHUB_USER/opensuse_mango.git
+> git clone https://github.com/pauljamesharper/opensuse_mango.git
 > cd opensuse_mango
 > ./install-opensuse.sh
 > ```
