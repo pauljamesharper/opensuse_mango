@@ -25,9 +25,9 @@ Singleton {
     property bool vpnOn: false
     property int wifiSignal: -1        // 0–100 while on Wi-Fi, -1 unknown
     // NetworkManager's verdict: full, limited, portal, none or unknown.
-    // Real only while its connectivity check is on (Debian's
-    // network-manager-config-connectivity-debian); without it NM just
-    // says full.
+    // Real only while its connectivity check is on (Tumbleweed's
+    // NetworkManager-branding-openSUSE ships it, conncheck.opensuse.org);
+    // without it NM just says full.
     property string connectivity: "unknown"
     property string checkUri: ""       // the check's URL: a sign-in page intercepts it
 

@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# mangobutter installer — openSUSE Tumbleweed port of install.sh.
+# mango_opensuse installer — openSUSE Tumbleweed port of install.sh.
 #
-# Differences from the Debian installer:
+# Differences from upstream's install.sh (Drew's original, for Debian):
 #   * packages come from the official Tumbleweed repos (zypper), no butterrepo
 #   * mangowc 0.14.4 (with butterrepo's two patches), scenefx 0.4.1, quickshell,
 #     butterpal and butterview are built from source into /usr/local
@@ -88,7 +88,7 @@ fi
 
 # an update keeps what setup-update printed above it
 [ "$ONLY_CONFIG" = true ] || clear 2>/dev/null || true
-printf '\033[1mmangobutter\033[0m\n\033[2mmango for openSUSE Tumbleweed · port of justaguy.dev/butter/mango\033[0m\n\n'
+printf '\033[1mmango_opensuse\033[0m\n\033[2mmango for openSUSE Tumbleweed · port of justaguy.dev/butter/mango\033[0m\n\n'
 
 DM_AT_START=$(systemctl is-active display-manager 2>/dev/null || true)
 
@@ -101,7 +101,7 @@ SUDO_KEEPALIVE=$!
 # Packages
 # ---------------------------------------------------------------------------
 
-# Runtime packages (Debian name -> Tumbleweed name where they differ)
+# Runtime packages (upstream's list, by Tumbleweed name)
 PACKAGES=(
     # compositor runtime (mangowc itself is built below)
     xwayland awww libwlroots-0_19
@@ -127,7 +127,7 @@ PACKAGES=(
     avahi acpi acpid upower
     fd xdg-user-dirs-gtk fastfetch
     gawk curl wget git xz fontconfig
-    # apps butterscripts installs on Debian
+    # apps upstream gets from butterscripts
     kitty geany MozillaFirefox
     # fonts (RobotoMono / SauceCodePro Nerd Fonts come from butterscripts below)
     google-noto-sans-fonts fontawesome-fonts google-noto-coloremoji-fonts nerdfonts-symbolsonly-fonts
@@ -343,7 +343,7 @@ build_quickshell() {
         || fetch_src quickshell https://github.com/quickshell-mirror/quickshell.git "$QUICKSHELL_REF" || return 1
     ( cd "$BUILD_ROOT/quickshell" \
       && cmake -GNinja -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-            -DCRASH_HANDLER=OFF -DDISTRIBUTOR="mangobutter openSUSE (source build)" \
+            -DCRASH_HANDLER=OFF -DDISTRIBUTOR="mango_opensuse (source build)" \
       && cmake --build build -j "$JOBS" && sudo cmake --install build ) || return 1
     stamp quickshell "$id"
 }

@@ -3,7 +3,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Widgets
 
-// App launcher (Super+space, or left-click the Debian swirl): every
+// App launcher (Super+space, or left-click the openSUSE chameleon): every
 // installed app in a grid. Type to search (name, generic name, keywords,
 // program); arrows move, Enter launches, Esc clears then closes. Chips
 // (Ctrl+Tab) narrow to Apps, Settings (the .desktop "Settings" category,

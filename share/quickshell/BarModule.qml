@@ -11,6 +11,8 @@ Rectangle {
     property color iconColor: alert ? Theme.bg : Theme.accent
     // the icon's font; a module can set its own
     property string iconFont: Theme.fontFamily
+    // the icon's pixel size; a module can set its own
+    property int iconPixelSize: Theme.iconSize
     property string label: ""
     property color labelColor: alert ? Theme.bg : Theme.fg
     property bool interactive: true
@@ -52,7 +54,7 @@ Rectangle {
             text: root.icon
             color: root.iconColor
             font.family: root.iconFont
-            font.pixelSize: Theme.iconSize
+            font.pixelSize: root.iconPixelSize
             Behavior on color { ColorAnimation { duration: 250 } }
         }
 

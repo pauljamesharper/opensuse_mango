@@ -1,6 +1,6 @@
 import QtQuick
 
-// Debian swirl — the command center, no extra buttons needed:
+// openSUSE chameleon — the command center, no extra buttons needed:
 //   left: app launcher (LauncherPopup; the clipboard popup lives here
 //   too) · right: the settings panel's
 //   Wallpaper tab · middle: random wallpaper
@@ -8,8 +8,9 @@ import QtQuick
 BarModule {
     id: root
 
-    icon: ""  // Debian swirl (Font Logos, in Roboto Mono Nerd Font too)
+    icon: ""  // openSUSE chameleon (Font Logos, in Roboto Mono Nerd Font too)
     iconColor: Theme.accent
+    iconPixelSize: Math.round(Theme.iconSize * 1.35)
     onClicked: mouse => {
         if (mouse.button === Qt.RightButton)
             BarIpc.call("settings", "open", "wallpaper")
