@@ -151,6 +151,10 @@ PACKAGES+=(
     google-noto-sans-khmer-fonts google-noto-serif-khmer-fonts
 )
 
+# Intel: thermald drives the DPTF thermal framework (smoother than the CPU's
+# own emergency throttling, esp. laptop chips in small cases)
+grep -q GenuineIntel /proc/cpuinfo && PACKAGES+=(thermald)
+
 # Flathub apps (system-wide, like the originals)
 FLATPAKS=(
     io.github.focustimerhq.FocusTimer   # the bar's FocusPill talks to it over D-Bus
@@ -227,6 +231,14 @@ else
         done
     fi
 fi
+
+# Power and thermal daemons (both modes; the bar's power-profile control
+# needs power-profiles-daemon running)
+for svc in power-profiles-daemon thermald; do
+    if systemctl cat "$svc.service" >/dev/null 2>&1 && ! systemctl is-enabled --quiet "$svc" 2>/dev/null; then
+        sudo systemctl enable --now "$svc" || warn "$svc not enabled - sudo systemctl enable --now $svc"
+    fi
+done
 
 # ---------------------------------------------------------------------------
 # Flatpak: Flathub + your apps (both modes; already-installed apps are skipped)

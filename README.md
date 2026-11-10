@@ -63,7 +63,7 @@ Add your own to the `FLATPAKS` list in `install-opensuse.sh`; `--only-config` in
 
 **mise and Claude Code.** [mise](https://mise.jdx.dev) comes from its own zypper repo, gets activated in `~/.bashrc`, and installs [Claude Code](https://claude.com/claude-code) with `mise use -g claude@latest`. Upgrade it later with `mise upgrade claude`.
 
-**Packages.** git, stow, vim, emacs, alacritty and blueman; tesseract OCR and wtype; Noto fonts for CJK, Thai, Arabic and Khmer. IceWM is removed and locked.
+**Packages.** git, stow, vim, emacs, alacritty and blueman; tesseract OCR and wtype; Noto fonts for CJK, Thai, Arabic and Khmer. On Intel CPUs, thermald (enabled alongside power-profiles-daemon). IceWM is removed and locked.
 
 **First-run setup.** `first-run/` is an Omarchy-style one-time setup that opens in a terminal at the first login. It sets the hostname and git identity, starts an ssh-agent user service, creates an Ed25519 key and walks you through adding it to Codeberg, GitHub and GitLab, then runs `zypper dup`. Run it again any time with `mango-first-run --force`.
 
